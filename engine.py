@@ -1,3 +1,4 @@
+import asyncio
 import re
 import json
 import time
@@ -9,10 +10,10 @@ from schema_desc import SCHEMA_PROMPT
 
 try:
     from google import genai
-    from google.genai import types
     GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 except Exception:
     GENAI_CLIENT = None
+
 
 UZBEK_MARKERS = [
     "o‘", "o'", "g‘", "g'", "sh", "ch", "qancha", "qaysi", "necha", "kim", 
@@ -77,34 +78,43 @@ def clean_sql(raw: str) -> str:
     return raw.strip().rstrip(';')
 
 async def generate_sql_gemini(prompt: str) -> Optional[str]:
-    """Generates SQL query using Gemini API with automatic model fallback."""
+    """Generates SQL query using Gemini Async API with fast timeout and fallback."""
     global GENAI_CLIENT
     if not GEMINI_API_KEY:
         return None
-        
+
+    if GENAI_CLIENT is None:
+        try:
+            from google import genai
+            GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+        except Exception as e:
+            print(f"Failed to create GenAI client: {e}")
+            return None
+
     models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
-    
+    full_prompt = f"{SCHEMA_PROMPT}\n\nUser Question:\n{prompt}\n\nSQL Query:"
+
     for model_name in models_to_try:
         try:
-            if GENAI_CLIENT is None:
-                from google import genai
-                GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
-                
-            full_prompt = f"{SCHEMA_PROMPT}\n\nUser Question:\n{prompt}\n\nSQL Query:"
-            response = GENAI_CLIENT.models.generate_content(
-                model=model_name,
-                contents=full_prompt,
-                config={"temperature": 0.0, "max_output_tokens": 800}
+            # 8-second timeout so it never hangs
+            response = await asyncio.wait_for(
+                GENAI_CLIENT.aio.models.generate_content(
+                    model=model_name,
+                    contents=full_prompt,
+                    config={"temperature": 0.0, "max_output_tokens": 600}
+                ),
+                timeout=8.0
             )
             if response and response.text:
                 sql = clean_sql(response.text)
                 if sql.upper().startswith("SELECT"):
                     return sql
         except Exception as e:
-            print(f"Gemini model {model_name} error: {e}")
+            print(f"Gemini model {model_name} failed ({type(e).__name__}): {e}")
             continue
 
     return None
+
 
 async def generate_sql_groq(prompt: str) -> Optional[str]:
     """Fallback SQL generation using Groq API."""
@@ -196,31 +206,31 @@ def deterministic_format(columns: List[str], rows: List[List[Any]], lang: str, q
     return "\n".join(lines)
 
 async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
-    """Uses Gemini to format the final grounded answer in UZ or RU."""
+    """Uses Gemini Async to format the final grounded answer with timeout."""
     global GENAI_CLIENT
     if not GEMINI_API_KEY:
         return None
-        
-    models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
-    for model_name in models_to_try:
+
+    if GENAI_CLIENT is None:
         try:
-            if GENAI_CLIENT is None:
-                from google import genai
-                GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+            from google import genai
+            GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+        except Exception:
+            return None
 
-            lang_instruction = (
-                "Javobni O'ZBEK tilida, aniq, qisqa va faktlarga tayangan holda bering. Raqamlarni aniq ko'rsating."
-                if lang == "uz" else
-                "Ответьте на РУССКОМ языке, четко, кратко, строго на основе приведенных данных. Указывайте точные цифры."
-            )
+    lang_instruction = (
+        "Javobni O'ZBEK tilida, aniq, qisqa va faktlarga tayangan holda bering. Raqamlarni aniq ko'rsating."
+        if lang == "uz" else
+        "Ответьте на РУССКОМ языке, четко, кратко, строго на основе приведенных данных. Указывайте точные цифры."
+    )
 
-            data_preview = {
-                "columns": columns,
-                "row_count": len(rows),
-                "rows": rows[:10]
-            }
+    data_preview = {
+        "columns": columns,
+        "row_count": len(rows),
+        "rows": rows[:10]
+    }
 
-            prompt = f"""
+    prompt = f"""
 Siz UZEX birja tahlilchisi agentsiz.
 Foydalanuvchi savoli: "{query}"
 
@@ -236,18 +246,26 @@ QOIDALAR:
 3. Katta raqamlarni chiroyli formatda bering (masalan: 1 250 000 000 so'm yoki 1,25 mlrd so'm).
 4. Kompaniya nomi, STIR yoki shartnoma raqami bo'lsa, ularni aniq ko'rsating.
 """
-            response = GENAI_CLIENT.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config={"temperature": 0.2, "max_output_tokens": 800}
+
+    models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
+    for model_name in models_to_try:
+        try:
+            response = await asyncio.wait_for(
+                GENAI_CLIENT.aio.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={"temperature": 0.2, "max_output_tokens": 800}
+                ),
+                timeout=7.0
             )
             if response and response.text:
                 return response.text.strip()
         except Exception as e:
-            # Continue to next model or fallback
+            print(f"Gemini formatting model {model_name} failed: {e}")
             continue
 
     return None
+
 
 class AgentEngine:
     async def process_query(self, user_query: str) -> Dict[str, Any]:
