@@ -42,9 +42,47 @@ DOMAIN_KEYWORDS = [
 ]
 
 def detect_language(text: str) -> str:
-    text_lower = text.lower()
-    score = sum(1 for m in UZBEK_MARKERS if m in text_lower)
-    return "uz" if score >= 1 else "ru"
+    """Accurately detects language based on script and characters."""
+    text_clean = text.strip()
+    
+    # Specific Uzbek Cyrillic letters
+    if re.search(r'[ўқғҳЎҚҒҲ]', text_clean):
+        return 'uz'
+        
+    cyrillic_chars = len(re.findall(r'[а-яА-ЯёЁ]', text_clean))
+    latin_chars = len(re.findall(r'[a-zA-Z]', text_clean))
+    
+    # If Cyrillic dominates without Uzbek-specific letters -> Russian
+    if cyrillic_chars > latin_chars:
+        return 'ru'
+        
+    # If Latin characters present -> Uzbek (in this context, Latin is always Uzbek)
+    if latin_chars > 0:
+        return 'uz'
+        
+    return 'uz'
+
+GREETINGS_UZ = ["salom", "assalom", "qalesan", "qalaysan", "yaxshimisan", "tinchmisiz", "nima gap", "qandaysiz"]
+GREETINGS_RU = ["привет", "здравствуй", "добрый день", "как дела", "доброе утро", "добрый вечер"]
+
+def check_greeting(query: str) -> Optional[str]:
+    q = query.lower()
+    for g in GREETINGS_UZ:
+        if g in q:
+            return (
+                "👋 **Assalomu alaykum!** Yaxshiman, rahmat.\n\n"
+                "Men **UZEX birja bitimlari** (2022–2026 yillardagi 500 000 ta bitim) boʻyicha tahliliy AI-agentman.\n\n"
+                "Menga bitimlar, tovarlar (sement, paxta, bugʻdoy va h.k.), shartnomalar, brokerlar yoki narxlar haqida savol bering!"
+            )
+    for g in GREETINGS_RU:
+        if g in q:
+            return (
+                "👋 **Здравствуйте!**\n\n"
+                "Я аналитический AI-агент по сделкам биржи **УзРТСБ (UZEX)** (500 000 сделок за 2022–2026 гг.).\n\n"
+                "Задайте мне любой вопрос о сделках, контрактах, ценах, товарах или брокерах!"
+            )
+    return None
+
 
 def is_domain_question(query: str) -> bool:
     """Checks if the query is related to commodity exchange, transactions, goods, companies, or brokers."""
@@ -333,7 +371,20 @@ class AgentEngine:
         lang = detect_language(user_query)
 
 
-        # 1. Domain Check
+        # 1. Greeting Check
+        greeting_text = check_greeting(user_query)
+        if greeting_text:
+            return {
+                "answer": greeting_text,
+                "sql": None,
+                "data": [],
+                "columns": [],
+                "language": lang,
+                "elapsed_seconds": round(time.time() - start_time, 2),
+                "status": "greeting"
+            }
+
+        # 2. Domain Check
         if not is_domain_question(user_query):
             refusal = (
                 "Taqdim etilgan maʼlumotlar bazasida bu mavzu boʻyicha maʼlumot mavjud emas. "
@@ -352,7 +403,7 @@ class AgentEngine:
                 "status": "out_of_domain"
             }
 
-        # 2. SQL Generation
+        # 3. SQL Generation
         sql = await generate_sql_gemini(user_query)
         if not sql:
             sql = await generate_sql_groq(user_query)
