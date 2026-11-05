@@ -1,0 +1,7 @@
+uzex.db
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.vscode/
+uzex_spot_data/
