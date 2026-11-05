@@ -9,6 +9,17 @@ DANGEROUS_KEYWORDS = re.compile(
     re.IGNORECASE
 )
 
+def py_like(pattern: Any, text: Any) -> bool:
+    if pattern is None or text is None:
+        return False
+    pattern_str = str(pattern).lower()
+    text_str = str(text).lower()
+    # Fast-path for common '%keyword%' pattern
+    if pattern_str.startswith('%') and pattern_str.endswith('%') and '%' not in pattern_str[1:-1] and '_' not in pattern_str:
+        return pattern_str[1:-1] in text_str
+    regex = '^' + re.escape(pattern_str).replace(r'\%', '.*').replace(r'\_', '.') + '$'
+    return bool(re.search(regex, text_str, re.DOTALL))
+
 class DBClient:
     def __init__(self, db_path: str = DB_PATH):
         self.db_path = db_path
@@ -16,6 +27,9 @@ class DBClient:
     def get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, timeout=10.0)
         conn.row_factory = sqlite3.Row
+        # Case-insensitive Unicode LIKE and LOWER for Uzbek/Russian Cyrillic support
+        conn.create_function("like", 2, py_like)
+        conn.create_function("lower", 1, lambda s: s.lower() if s is not None else None)
         return conn
 
     def execute_query(self, sql: str, max_rows: int = 50) -> Dict[str, Any]:

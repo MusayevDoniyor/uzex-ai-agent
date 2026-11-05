@@ -19,11 +19,11 @@ PORT = int(os.environ.get("PORT", 8000))
 HOST = os.environ.get("HOST", "0.0.0.0")
 
 # Model settings
-DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
+DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 FALLBACK_GEMINI_MODELS = [
+    "gemini-3-flash-preview",
     "gemini-3.5-flash-lite",
-    "gemini-2.5-flash-lite",
-    "gemini-3.1-flash-lite"
+    "gemini-2.5-flash-lite"
 ]
 
 

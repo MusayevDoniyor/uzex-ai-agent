@@ -33,10 +33,11 @@ DOMAIN_KEYWORDS = [
 ]
 
 CONVERSATIONAL_WORDS = [
-    "salom", "assalom", "qalesan", "qalaysan", "yaxshimisan", "tinchmisiz", "nima gap",
-    "qandaysiz", "zo'r", "zor", "yaxshi", "rahmat", "charchama", "ha", "yo'q", "yoq", "ok",
+    "salom", "assalom", "qalesan", "qalaysan", "yaxshimisan", "tinchmisiz", "nima gap", "ishlar",
+    "qandaysiz", "zo'r", "zor", "yaxshi", "rahmat", "charchama", "ha", "yo'q", "yoq", "ok", "okey",
     "gaplashaylik", "sen kimsan", "kim yaratgan", "vazifang", "nima qila olasan", "tushundim",
-    "привет", "здравствуй", "добрый день", "как дела", "отлично", "хорошо", "спасибо", "кто ты"
+    "привет", "здравствуй", "добрый день", "как дела", "отлично", "хорошо", "спасибо", "кто ты",
+    "что умеешь", "пока", "до свидания", "hi", "hello", "hey"
 ]
 
 def detect_language(text: str) -> str:
@@ -70,16 +71,17 @@ def is_domain_question(query: str) -> bool:
 
 def clean_sql(raw: str) -> str:
     raw = raw.strip()
-    match = re.search(r'```(?:sql)?\s*(.*?)\s*```', raw, re.DOTALL | re.IGNORECASE)
+    match = re.search(r'```(?:sql|sqlite)?\s*(.*?)\s*```', raw, re.DOTALL | re.IGNORECASE)
     if match:
         raw = match.group(1).strip()
     select_idx = raw.upper().find("SELECT")
     if select_idx != -1:
         raw = raw[select_idx:]
-    return raw.strip().rstrip(';')
+    raw = raw.replace("```", "").strip()
+    return raw.rstrip(';')
 
 async def chat_with_ai(query: str, lang: str) -> str:
-    """Natural, intelligent conversation using Gemini Flash Lite."""
+    """Natural, intelligent conversation using Gemini."""
     global GENAI_CLIENT
     if GENAI_CLIENT is None and GEMINI_API_KEY:
         try:
@@ -89,36 +91,41 @@ async def chat_with_ai(query: str, lang: str) -> str:
             pass
 
     system_prompt = (
-        "Siz Oʻzbekiston respublika tovar-xom ashyo birjasi (UZEX) AI Hackathon 2026 uchun yaratilgan "
-        "aqlli, professional va samimiy AI-agentsiz. Foydalanuvchi bilan tabiiy, doʻstona tilda gaplashing. "
-        "Siz 2022–2026 yillardagi 500 000 ta birja bitimi, shartnomalar, tovarlar (sement, paxta, bugʻdoy va h.k.), "
-        "brokerlar va dollar kurslari boʻyicha aniq tahliliy maʼlumot bera olasiz. "
-        "Foydalanuvchi qaysi tilda yozsa, oʻsha tilda (oʻzbek yoki rus) qisqa, jonli va samimiy javob bering."
+        "You are an intelligent, friendly and professional AI assistant for the UZEX (Uzbek Republican Commodity Exchange) AI Hackathon 2026. "
+        "Chat warmly, naturally and concisely in 1-2 short sentences. "
+        "Always respond in the EXACT same language as the user (Uzbek for Uzbek, Russian for Russian, English for English). "
+        "Politely invite the user to ask about UZEX spot/futures trade transactions (2022–2026), commodities (cement, wheat, cotton, fuel, sugar), contracts, or brokers. "
+        "CRITICAL: Output ONLY the direct chat response. NEVER output words like 'Selection:', 'Choice:', 'Thought:', 'Option:', or analysis notes."
     )
 
     models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
     for model_name in models_to_try:
         try:
-            full_prompt = f"{system_prompt}\n\nFoydalanuvchi: {query}\nJavob:"
             resp = await asyncio.wait_for(
                 GENAI_CLIENT.aio.models.generate_content(
                     model=model_name,
-                    contents=full_prompt,
-                    config={"temperature": 0.6, "max_output_tokens": 400}
+                    contents=query,
+                    config={
+                        "system_instruction": system_prompt,
+                        "temperature": 0.4,
+                        "max_output_tokens": 150
+                    }
                 ),
-                timeout=6.0
+                timeout=4.0
             )
             if resp and resp.text:
-                return resp.text.strip()
-        except Exception as e:
+                txt = resp.text.strip()
+                txt = re.sub(r'^(Selection|Choice|Thought|Analysis|Response|Javob|Ответ):\*?\s*', '', txt, flags=re.IGNORECASE).strip()
+                if txt:
+                    return txt
+        except Exception:
             continue
 
-    # Fallback if no LLM responded
     return (
-        "👋 Assalomu alaykum! Hammasi ajoyib, rahmat. Men UZEX birja bitimlari (2022–2026) boʻyicha AI-agentman. "
-        "Birja savdolari, shartnomalar yoki tovarlar haqida istalgan savolingizni berishingiz mumkin!"
+        "👋 Assalomu alaykum! Yaxshiman, rahmat. Men UZEX birja bitimlari (2022–2026) boʻyicha tahliliy AI-agentman. "
+        "Birja savdolari, shartnomalar yoki tovarlar (sement, bugʻdoy, paxta va h.k.) haqida istalgan savolingizni berishingiz mumkin!"
         if lang == "uz" else
-        "👋 Здравствуйте! Я AI-агент по сделкам биржи UZEX (2022–2026 гг.). Задайте мне любой вопрос о биржевых торгах, товарах или контрактах!"
+        "👋 Здравствуйте! Я AI-агент по биржевым сделкам UZEX (2022–2026 гг.). Задайте мне любой вопрос о биржевых торгах, товарах или контрактах!"
     )
 
 async def generate_sql_gemini(prompt: str) -> Optional[str]:
@@ -131,7 +138,7 @@ async def generate_sql_gemini(prompt: str) -> Optional[str]:
         try:
             from google import genai
             GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
-        except Exception as e:
+        except Exception:
             return None
 
     models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
@@ -143,21 +150,21 @@ async def generate_sql_gemini(prompt: str) -> Optional[str]:
                 GENAI_CLIENT.aio.models.generate_content(
                     model=model_name,
                     contents=full_prompt,
-                    config={"temperature": 0.0, "max_output_tokens": 600}
+                    config={"temperature": 0.0, "max_output_tokens": 400}
                 ),
-                timeout=7.0
+                timeout=6.0
             )
             if response and response.text:
                 sql = clean_sql(response.text)
-                if sql.upper().startswith("SELECT"):
+                if sql.upper().startswith("SELECT") and " FROM " in sql.upper():
                     return sql
-        except Exception as e:
+        except Exception:
             continue
 
     return None
 
 async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
-    """Generates a rich, natural, professional market analyst brief using Gemini."""
+    """Generates a direct, concise, factual market intelligence answer using Gemini."""
     global GENAI_CLIENT
     if not GEMINI_API_KEY:
         return None
@@ -169,36 +176,25 @@ async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, 
         except Exception:
             return None
 
-    lang_instruction = (
-        "Javobni OʻZBEK tilida, professional birja tahlilchisi sifatida, toʻliq va chiroyli jumlalar bilan tushuntirib bering. "
-        "Raqamlarni aniq va tushunarli keltiring (masalan: 81 238 709 705 soʻm yoki taxminan 81.24 milliard soʻm)."
-        if lang == "uz" else
-        "Ответьте на РУССКОМ языке как профессиональный биржевой аналитик, полными связными предложениями. "
-        "Приведите точные цифры и поясните их (например, 81 238 709 705 сумов или около 81.24 млрд сумов)."
-    )
-
     data_preview = {
         "columns": columns,
         "row_count": len(rows),
         "rows": rows[:10]
     }
 
-    prompt = f"""
-Siz Oʻzbekiston respublika tovar-xom ashyo birjasi (UZEX) rasmiy tahlilchisisiz.
-Foydalanuvchi savoli: "{query}"
+    system_instruction = (
+        "You are an expert UZEX (Uzbek Republican Commodity Exchange) market intelligence assistant. "
+        "Strictly adhere to the provided database results. Never hallucinate or extrapolate beyond the data.\n\n"
+        "STRICT ANSWER RULES:\n"
+        "1. Direct & Concise: Answer in 1-2 clear, punchy sentences. Deliver the core number, fact, or company immediately in the very first sentence. "
+        "DO NOT use introductory filler like 'O'zbekiston respublika tovar-xom ashyo birjasi rasmiy tahlilchisi sifatida...' or 'Как аналитик биржи...'. Get straight to the point.\n"
+        "2. Exact Language: Match the user's question language (Uzbek for Uzbek, Russian for Russian, English for English, Spanish for Spanish, etc.).\n"
+        "3. Highlight Numbers: Format large sums or numbers with readable units (e.g. 81 238 709 705 soʻm / ~81.24 mlrd soʻm, 115 763 ta bitim). Use bold markdown for names, numbers and key entities.\n"
+        "4. Entity Names: Include company name, INN/STIR, broker code, or contract number if present in the data.\n"
+        "5. Output ONLY the response text. NEVER output 'Selection:', 'Thought:', or meta-commentary."
+    )
 
-Bajarilgan SQL soʻrov:
-{sql}
-
-Baza natijalari:
-{json.dumps(data_preview, ensure_ascii=False, indent=2)}
-
-QOIDALAR:
-1. {lang_instruction}
-2. Faqat taqdim etilgan maʼlumotlarga tayaning! Hech qanday raqam toʻqimang.
-3. Shartnoma raqami, kompaniya nomi yoki STIR mavjud boʻlsa, albatta koʻrsating.
-4. Javobingiz quruq roʻyxat emas, balki tabiiy va mazmunli tahliliy hisobot boʻlsin.
-"""
+    user_prompt = f"User Question: {query}\nExecuted SQL: {sql}\nDatabase Results: {json.dumps(data_preview, ensure_ascii=False)}"
 
     models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
     for model_name in models_to_try:
@@ -206,13 +202,20 @@ QOIDALAR:
             response = await asyncio.wait_for(
                 GENAI_CLIENT.aio.models.generate_content(
                     model=model_name,
-                    contents=prompt,
-                    config={"temperature": 0.2, "max_output_tokens": 800}
+                    contents=user_prompt,
+                    config={
+                        "system_instruction": system_instruction,
+                        "temperature": 0.1,
+                        "max_output_tokens": 250
+                    }
                 ),
-                timeout=8.0
+                timeout=6.0
             )
             if response and response.text:
-                return response.text.strip()
+                txt = response.text.strip()
+                txt = re.sub(r'^(Selection|Choice|Thought|Analysis|Response|Javob|Ответ):\*?\s*', '', txt, flags=re.IGNORECASE).strip()
+                if txt:
+                    return txt
         except Exception:
             continue
 

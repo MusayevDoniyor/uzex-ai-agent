@@ -59,11 +59,19 @@ async def handle_query(message: types.Message):
     sql = res.get("sql")
     elapsed = res.get("elapsed_seconds", 0)
 
-    # Format reply with provenance
-    reply = f"{answer}\n\n"
-    if sql:
-        reply += f"🔍 *SQL tahlil:* `{sql}`\n"
-    reply += f"⏱ *Vaqt:* {elapsed} soniya"
+    # Format reply: For casual conversation, just send the natural text
+    if res.get("status") in ["conversation", "greeting"]:
+        reply = answer
+    else:
+        reply = f"{answer}\n\n"
+        if sql:
+            clean_sql_one_line = " ".join(sql.replace("`", "'").split())
+            reply += f"🔍 *SQL:* `{clean_sql_one_line}`\n"
+        if res.get("language") == "ru":
+            reply += f"⏱ *Время:* {elapsed} сек."
+        else:
+            reply += f"⏱ *Vaqt:* {elapsed} soniya"
+
 
     # Telegram limit is 4096 chars
     if len(reply) > 4000:

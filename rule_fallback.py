@@ -101,5 +101,35 @@ def rule_based_sql_fallback(query: str) -> Optional[str]:
                 f"WHERE d.contract_type = 'Экспортный' AND d.deal_date BETWEEN '{matched_year}-01-01' AND '{matched_year}-12-31';"
             )
 
+    # 8. Deal counts by year (e.g. "2025-yilda nechta bitim/operatsiya bo'lgan?", "сколько сделок в 2024")
+    if any(k in q for k in ["nechta", "qancha bitim", "qancha operatsiya", "сколько сделок", "сколько операций", "operaciones"]):
+        year = None
+        for yr in ["2022", "2023", "2024", "2025", "2026"]:
+            if yr in q:
+                year = yr
+                break
+        if year:
+            return f"SELECT COUNT(*) AS total_deals FROM deals WHERE deal_date BETWEEN '{year}-01-01' AND '{year}-12-31';"
+        else:
+            return "SELECT COUNT(*) AS total_deals FROM deals;"
+
+    # 9. Total deal sum by year (e.g. "2024-yilda jami summa qancha?")
+    if any(k in q for k in ["jami summa", "jami hajm", "общая сумма", "общий объем"]):
+        year = None
+        for yr in ["2022", "2023", "2024", "2025", "2026"]:
+            if yr in q:
+                year = yr
+                break
+        if year:
+            return f"SELECT SUM(deal_sum) AS total_deal_sum, COUNT(*) AS total_deals FROM deals WHERE deal_date BETWEEN '{year}-01-01' AND '{year}-12-31';"
+
+    # 10. Most active broker (e.g. "Eng faol broker qaysi?", "Какой брокер самый активный?")
+    if any(k in q for k in ["faol broker", "активный брокер", "eng ko'p broker"]):
+        return "SELECT seller_broker AS broker_code, COUNT(*) AS deals_count FROM deals GROUP BY seller_broker ORDER BY deals_count DESC LIMIT 1;"
+
+    # 11. Most expensive deal (e.g. "Eng qimmat bitim", "Самая дорогая сделка")
+    if any(k in q for k in ["eng qimmat", "самая дорогая", "максимальная сделка"]):
+        return "SELECT deal_number, deal_date, product_name, deal_sum FROM deals ORDER BY deal_sum DESC LIMIT 1;"
+
     return None
 
