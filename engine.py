@@ -160,8 +160,61 @@ def format_number(val: Any) -> str:
         return f"{val:,}".replace(",", " ")
     return str(val) if val is not None else "-"
 
+COLUMN_LABELS_UZ = {
+    "name": "Kompaniya nomi",
+    "total_sales_sum": "Umumiy savdo summasi",
+    "deals_count": "Bitimlar soni",
+    "total_sum": "Umumiy summa",
+    "total_sum_uzs": "Umumiy summa (soʻmda)",
+    "cancelled_count": "Bekor qilingan bitimlar soni",
+    "cancelled_sum": "Bekor qilingan summa",
+    "payment_days": "Toʻlov muddati (kun)",
+    "delivery_days": "Yetkazib berish muddati (kun)",
+    "base_price": "Bazaviy narx",
+    "currency": "Valyuta",
+    "warehouse_address": "Ombor manzili",
+    "product_name": "Tovar nomi",
+    "contract_number": "Shartnoma raqami",
+    "inn": "STIR (INN)",
+    "region": "Viloyat / Hudud",
+    "activity_type": "Faoliyat turi",
+    "role": "Roli",
+    "vat_payer": "QQS toʻlovchi",
+    "unit_price": "Birlik narxi",
+    "volume_units": "Hajm (birlikda)"
+}
+
+COLUMN_LABELS_RU = {
+    "name": "Наименование компании",
+    "total_sales_sum": "Общая сумма продаж",
+    "deals_count": "Количество сделок",
+    "total_sum": "Общая сумма",
+    "total_sum_uzs": "Общая сумма (в сумах)",
+    "cancelled_count": "Количество аннулированных сделок",
+    "cancelled_sum": "Сумма аннулированных сделок",
+    "payment_days": "Срок оплаты (дней)",
+    "delivery_days": "Срок поставки (дней)",
+    "base_price": "Базисная цена",
+    "currency": "Валюта",
+    "warehouse_address": "Адрес склада",
+    "product_name": "Наименование товара",
+    "contract_number": "Номер контракта",
+    "inn": "ИНН",
+    "region": "Регион",
+    "activity_type": "Вид деятельности",
+    "role": "Роль",
+    "vat_payer": "Плательщик НДС",
+    "unit_price": "Цена за единицу",
+    "volume_units": "Объем (в единицах)"
+}
+
+def get_label(col: str, lang: str) -> str:
+    col_clean = col.lower().strip()
+    mapping = COLUMN_LABELS_UZ if lang == "uz" else COLUMN_LABELS_RU
+    return mapping.get(col_clean, col.replace("_", " ").title())
+
 def deterministic_format(columns: List[str], rows: List[List[Any]], lang: str, query: str) -> str:
-    """Fast, accurate, deterministic response builder that doesn't consume LLM quota."""
+    """Fast, accurate, deterministic response builder with polished labels."""
     if not rows:
         return (
             "Taqdim etilgan maʼlumotlar bazasida bu soʻrov boʻyicha maʼlumot topilmadi."
@@ -183,12 +236,13 @@ def deterministic_format(columns: List[str], rows: List[List[Any]], lang: str, q
             return f"Oʻrtacha koʻrsatkich: **{f_val}**." if lang == "uz" else f"Средний показатель: **{f_val}**."
         return f"Natija: **{f_val}**." if lang == "uz" else f"Результат: **{f_val}**."
 
-    # Single row multi-column result (e.g. 1 specific company, contract or leader)
+    # Single row multi-column result
     if len(rows) == 1:
         lines = ["**Tahlil natijasi:**\n" if lang == "uz" else "**Результат анализа:**\n"]
         for col, val in zip(columns, rows[0]):
             f_val = format_number(val)
-            lines.append(f"• **{col}:** {f_val}")
+            label = get_label(col, lang)
+            lines.append(f"• **{label}:** {f_val}")
         return "\n".join(lines)
 
     # Multi-row table result (up to 10 rows)
@@ -198,7 +252,8 @@ def deterministic_format(columns: List[str], rows: List[List[Any]], lang: str, q
         item_parts = []
         for col_name, val in zip(columns, r):
             f_val = format_number(val)
-            item_parts.append(f"{col_name}: **{f_val}**")
+            label = get_label(col_name, lang)
+            item_parts.append(f"{label}: **{f_val}**")
         lines.append(f"{i}. " + " | ".join(item_parts))
 
     if len(rows) > 10:
@@ -206,6 +261,7 @@ def deterministic_format(columns: List[str], rows: List[List[Any]], lang: str, q
         lines.append(more)
 
     return "\n".join(lines)
+
 
 async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
     """Uses Gemini Async to format the final grounded answer with timeout."""
