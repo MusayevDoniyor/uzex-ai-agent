@@ -1,10 +1,17 @@
 import asyncio
 import logging
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.stdout.reconfigure(encoding='utf-8')
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.enums import ParseMode
 from config import TELEGRAM_BOT_TOKEN
 from engine import engine
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -80,7 +87,18 @@ async def start_bot_polling():
         await bot.session.close()
 
 if __name__ == "__main__":
+    import time
     if not TELEGRAM_BOT_TOKEN:
         print("Error: TELEGRAM_BOT_TOKEN is not set. Please set it in .env or environment.")
     else:
-        asyncio.run(start_bot_polling())
+        print("Starting UZEX Telegram Bot (@SmartMarketPricesBot)...")
+        while True:
+            try:
+                asyncio.run(start_bot_polling())
+            except (KeyboardInterrupt, SystemExit):
+                print("Bot stopped by user.")
+                break
+            except Exception as e:
+                logger.error(f"Bot connection error: {e}. Reconnecting in 3 seconds...")
+                time.sleep(3)
+
