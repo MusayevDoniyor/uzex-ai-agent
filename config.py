@@ -19,14 +19,13 @@ PORT = int(os.environ.get("PORT", 8000))
 HOST = os.environ.get("HOST", "0.0.0.0")
 
 # Model settings
-# Use flash-lite models which have active, separate free quotas and ultra-low latency (<1s)
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-3.5-flash"
 FALLBACK_GEMINI_MODELS = [
-    "gemini-3.1-flash-lite",
     "gemini-3.5-flash-lite",
-    "gemini-flash-lite-latest",
-    "gemini-2.5-flash"
+    "gemini-2.5-flash-lite",
+    "gemini-3.1-flash-lite"
 ]
+
 
 
 
