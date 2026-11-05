@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a1024" />
+    <title>UZEX AI — Exchange data assistant</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="/" aria-label="UZEX AI Hackathon home"><span class="brand-grid" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="brand-name"><strong>UZEX AI</strong><em>Hackathon</em></span></a>
+        <div class="topbar-tools"><div class="locale-switch" role="group" aria-label="Language"><button class="locale-btn is-active" type="button" data-language="uz" aria-pressed="true">UZ</button><button class="locale-btn" type="button" data-language="ru" aria-pressed="false">RU</button></div><div class="live-pill"><span class="live-dot"></span><span id="live-label" class="meta-skeleton-text" aria-live="polite">Live data</span></div></div>
+      </header>
+
+      <section class="hero">
+        <p class="eyebrow"><span></span> UZEX AI HACKATHON</p>
+        <h1><span data-i18n="heroLine1">Birja ma'lumotlari,</span><br /><em data-i18n="heroLine2">aniq javoblar.</em></h1>
+        <p class="hero-copy" data-i18n="heroCopy">UZEX savdo ma'lumotlarini rus yoki o'zbek tilida so'rang. AI savolni tushunadi, xavfsiz so'rov tuzadi va javobni faqat berilgan dataset asosida tekshiradi.</p>
+        <div class="trust-row"><span><i class="trust-icon">✓</i><span data-i18n="trustVerified">Manba bilan tekshirilgan</span></span><span><i class="trust-icon">⚡</i><span data-i18n="trustFast">Tezkor javob</span></span><span><i class="trust-icon">RU</i><span data-i18n="trustLanguages">RU / UZ</span></span></div>
+      </section>
+
+      <section class="workspace" aria-label="UZEX AI assistant">
+        <div class="panel ask-panel">
+          <div class="panel-heading"><div><p class="panel-kicker" data-i18n="askKicker">ASK THE DATA</p><h2 data-i18n="askTitle">Savolingizni yozing</h2></div><span class="shortcut">Ctrl <b>↵</b></span></div>
+          <form id="ask-form">
+            <label class="sr-only" for="question" data-i18n="questionLabel">Savol</label>
+            <div class="input-wrap"><textarea id="question" rows="3" maxlength="2000" placeholder="Masalan: 2025-yilda nechta bitim bo'lgan?" data-i18n-placeholder="questionPlaceholder" autocomplete="off"></textarea><span class="input-counter"><span id="char-count">0</span>/2000</span></div>
+            <div class="prompt-line"><span class="prompt-label" data-i18n="tryLabel">Sinab ko'ring</span><div class="prompt-list"><button type="button" class="prompt" data-question="2025-yilda nechta bitim bo'lgan?" data-i18n="promptYear">2025 statistikasi</button><button type="button" class="prompt" data-question="2025-yilda bitimlar bo'yicha top 3 hudud qaysi?" data-i18n="promptRegions">Top 3 hudud</button><button type="button" class="prompt" data-question="Что произошло со сделкой 100001?" data-i18n="promptDeal">Сделка №100001</button></div></div>
+            <div class="form-footer"><span class="input-hint"><span class="spark">✦</span> AI + SQL + UZEX dataset</span><button id="ask-button" class="ask-button" type="submit"><span id="button-label" data-i18n="askButton">Javobni ko'rish</span><span class="button-arrow">↗</span></button></div>
+          </form>
+          <section id="answer-card" class="answer-card is-empty" aria-live="polite" aria-atomic="true"><div class="empty-state"><span class="empty-orb">✦</span><p data-i18n="emptyTitle">Javob shu yerda chiqadi</p><span data-i18n="emptyCopy">Savol bering — biz datasetdan topamiz.</span></div></section>
+        </div>
+
+        <aside class="side-column">
+          <section id="coverage-panel" class="panel coverage-panel" aria-busy="true"><div class="panel-heading compact-heading"><div><p class="panel-kicker" data-i18n="coverageKicker">DATASET COVERAGE</p><h2 data-i18n="coverageTitle">Biz nimani bilamiz?</h2></div><span class="verified-badge" data-i18n="verified">✓ verified</span></div><div class="stats-grid"><div class="stat-card stat-wide"><strong id="deal-count" class="meta-value is-skeleton" aria-label="Loading"></strong><span data-i18n="deals">bitimlar</span><small data-i18n="realRecords">real UZEX records</small></div><div class="stat-card"><strong id="contract-count" class="meta-value is-skeleton" aria-label="Loading"></strong><span data-i18n="contracts">shartnomalar</span></div><div class="stat-card"><strong id="participant-count" class="meta-value is-skeleton" aria-label="Loading"></strong><span data-i18n="participants">ishtirokchilar</span></div><div class="stat-card"><strong id="broker-count" class="meta-value is-skeleton" aria-label="Loading"></strong><span data-i18n="brokers">brokerlar</span></div></div><div class="date-range"><span data-i18n="coverageRange">Qamrov</span><strong id="date-range" class="meta-value is-skeleton" aria-label="Loading"></strong></div></section>
+          <section class="panel how-panel"><p class="panel-kicker" data-i18n="howKicker">HOW IT WORKS</p><h2 data-i18n="howTitle">Har bir javobning yo'li</h2><div class="flow"><div class="flow-step"><span>01</span><div><b data-i18n="flowAi">AI tushunadi</b><small data-i18n="flowAiCopy">RU / UZ savolni tahlil qiladi</small></div></div><div class="flow-line"></div><div class="flow-step"><span>02</span><div><b data-i18n="flowSql">SQL tekshiradi</b><small data-i18n="flowSqlCopy">Faqat ruxsat etilgan query</small></div></div><div class="flow-line"></div><div class="flow-step"><span>03</span><div><b data-i18n="flowData">Dataset javob beradi</b><small data-i18n="flowDataCopy">Manba va tezlik ko'rsatiladi</small></div></div></div></section>
+        </aside>
+      </section>
+      <footer class="footer"><span>UZEX AI HACKATHON</span><span data-i18n="footerCopy">Answers grounded in supplied UZEX data</span></footer>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
