@@ -7,6 +7,8 @@ import httpx
 from config import GEMINI_API_KEY, GROQ_API_KEY, DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS
 from db import db_client
 from schema_desc import SCHEMA_PROMPT
+from rule_fallback import rule_based_sql_fallback
+
 
 try:
     from google import genai
@@ -270,8 +272,10 @@ QOIDALAR:
 class AgentEngine:
     async def process_query(self, user_query: str) -> Dict[str, Any]:
         start_time = time.time()
-        user_query = user_query.strip()
+        # Normalize apostrophe variations (oʻ, gʻ, o', g', o’, g’)
+        user_query = re.sub(r"[ʻ’‘`´ʹ′]", "'", user_query.strip())
         lang = detect_language(user_query)
+
 
         # 1. Domain Check
         if not is_domain_question(user_query):
@@ -296,6 +300,9 @@ class AgentEngine:
         sql = await generate_sql_gemini(user_query)
         if not sql:
             sql = await generate_sql_groq(user_query)
+        if not sql:
+            sql = rule_based_sql_fallback(user_query)
+
 
         if not sql:
             no_sql = (
