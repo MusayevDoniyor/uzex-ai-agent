@@ -1,9 +1,11 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Load .env specifically from uzex_agent directory
+load_dotenv(os.path.join(BASE_DIR, ".env"), override=True)
+load_dotenv()  # also load root .env if any
+
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "uzex.db"))
 
 # API Keys
@@ -17,4 +19,6 @@ PORT = int(os.environ.get("PORT", 8000))
 HOST = os.environ.get("HOST", "0.0.0.0")
 
 # Model settings
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"  # or gemini-1.5-flash
+DEFAULT_GEMINI_MODEL = "gemini-3.8-flash"
+FALLBACK_GEMINI_MODELS = ["gemini-2.5-flash", "gemini-flash-latest"]
+

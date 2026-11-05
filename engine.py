@@ -1,13 +1,12 @@
 import re
 import json
 import time
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple, Optional, List
 import httpx
-from config import GEMINI_API_KEY, GROQ_API_KEY, DEFAULT_GEMINI_MODEL
+from config import GEMINI_API_KEY, GROQ_API_KEY, DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS
 from db import db_client
 from schema_desc import SCHEMA_PROMPT
 
-# Import Google GenAI
 try:
     from google import genai
     from google.genai import types
@@ -18,7 +17,25 @@ except Exception:
 UZBEK_MARKERS = [
     "o‘", "o'", "g‘", "g'", "sh", "ch", "qancha", "qaysi", "necha", "kim", 
     "yil", "yilda", "bitim", "shartnoma", "sotuvchi", "xaridor", "narx", "summa",
-    "viloyat", "tuman", "bekor", "eng ko'p", "eng kam", "hajm", "dollarda", "so'mda"
+    "viloyat", "tuman", "bekor", "eng ko'p", "eng kam", "hajm", "dollarda", "so'mda",
+    "bo'yicha", "haqida", "qilingan", "tuzilgan", "sotgan", "olgan"
+]
+
+DOMAIN_KEYWORDS = [
+    # Uzbek Latin
+    "bitim", "shartnoma", "sotuvchi", "xaridor", "broker", "narx", "summa", "hajm",
+    "tovar", "mahsulot", "stir", "inn", "dollar", "so'm", "som", "eksport", "import",
+    "spot", "forvard", "fyuchers", "auksion", "bekor", "bajarilgan", "to'langan", "yangi",
+    "sement", "shakar", "bug'doy", "paxta", "benzin", "dizel", "gaz", "alyuminiy",
+    "mis", "armatura", "selitra", "karbamid", "un", "moy", "kompaniya", "viloyat", "ombor",
+    # Russian Cyrillic
+    "сделк", "контракт", "договор", "продавец", "покупатель", "брокер", "цена", "стоимост",
+    "сумма", "объем", "товар", "продукт", "инн", "стир", "курс", "доллар", "сум", "экспорт",
+    "спот", "форвард", "фьючерс", "аукцион", "аннулирован", "исполнен", "оплачен", "новый",
+    "цемент", "сахар", "пшениц", "хлопок", "бензин", "дизел", "газ", "алюмин", "мед",
+    "арматур", "селитр", "карбамид", "мука", "масло", "компани", "предприяти", "регион", "склад",
+    # Uzbek Cyrillic
+    "битим", "шартнома", "сотувчи", "харидор", "нарх", "ҳажм", "бекор", "сўм"
 ]
 
 def detect_language(text: str) -> str:
@@ -26,52 +43,67 @@ def detect_language(text: str) -> str:
     score = sum(1 for m in UZBEK_MARKERS if m in text_lower)
     return "uz" if score >= 1 else "ru"
 
+def is_domain_question(query: str) -> bool:
+    """Checks if the query is related to commodity exchange, transactions, goods, companies, or brokers."""
+    q = query.lower()
+    
+    # Check for broker codes (e.g., BK001, BK120)
+    if re.search(r'\bbk\d{1,4}\b', q):
+        return True
+    # Check for 9-digit INN
+    if re.search(r'\b\d{9}\b', q):
+        return True
+    # Check for contract number format (6-digit starting with 10)
+    if re.search(r'\b10\d{4}\b', q):
+        return True
+    # Check for keywords
+    if any(k in q for k in DOMAIN_KEYWORDS):
+        return True
+    # Check for exchange years
+    if any(yr in q for yr in ["2022", "2023", "2024", "2025", "2026"]):
+        return True
+        
+    return False
+
 def clean_sql(raw: str) -> str:
     """Extracts SQL statement from LLM output."""
     raw = raw.strip()
     match = re.search(r'```(?:sql)?\s*(.*?)\s*```', raw, re.DOTALL | re.IGNORECASE)
     if match:
         raw = match.group(1).strip()
-    # Remove leading/trailing non-SELECT text
     select_idx = raw.upper().find("SELECT")
     if select_idx != -1:
         raw = raw[select_idx:]
     return raw.strip().rstrip(';')
 
-def is_domain_question(query: str) -> bool:
-    """Checks if the query is related to commodity exchange, transactions, goods, companies, or brokers."""
-    q = query.lower()
-    keywords = [
-        "сделк", "контракт", "битим", "шартнома", "товар", "продукт", "цена", "нарх",
-        "сумма", "объем", "hajm", "инн", "stir", "брокер", "продавец", "покупатель",
-        "сотувчи", "харидор", "курс", "доллар", "экспорт", "спот", "форвард", "фьючерс",
-        "регион", "вилоят", "цемент", "sement", "сахар", "shakar", "пшениц", "bug'doy",
-        "пахта", "хлопок", "газ", "бензин", "дизел", "карбамид", "аукцион", "2022", "2023",
-        "2024", "2025", "2026", "состояние", "ҳолат", "тн вэд", "lot", "лот"
-    ]
-    return any(k in q for k in keywords)
-
-async def generate_sql_gemini(prompt: str, model_name: str = DEFAULT_GEMINI_MODEL) -> Optional[str]:
-    """Generates SQL query using Gemini API."""
+async def generate_sql_gemini(prompt: str) -> Optional[str]:
+    """Generates SQL query using Gemini API with automatic model fallback."""
     global GENAI_CLIENT
     if not GEMINI_API_KEY:
         return None
         
-    try:
-        if GENAI_CLIENT is None:
-            from google import genai
-            GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
-            
-        full_prompt = f"{SCHEMA_PROMPT}\n\nUser Question:\n{prompt}\n\nSQL Query:"
-        response = GENAI_CLIENT.models.generate_content(
-            model=model_name,
-            contents=full_prompt,
-            config={"temperature": 0.0, "max_output_tokens": 800}
-        )
-        if response and response.text:
-            return clean_sql(response.text)
-    except Exception as e:
-        print(f"Gemini API error: {e}")
+    models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
+    
+    for model_name in models_to_try:
+        try:
+            if GENAI_CLIENT is None:
+                from google import genai
+                GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+                
+            full_prompt = f"{SCHEMA_PROMPT}\n\nUser Question:\n{prompt}\n\nSQL Query:"
+            response = GENAI_CLIENT.models.generate_content(
+                model=model_name,
+                contents=full_prompt,
+                config={"temperature": 0.0, "max_output_tokens": 800}
+            )
+            if response and response.text:
+                sql = clean_sql(response.text)
+                if sql.upper().startswith("SELECT"):
+                    return sql
+        except Exception as e:
+            print(f"Gemini model {model_name} error: {e}")
+            continue
+
     return None
 
 async def generate_sql_groq(prompt: str) -> Optional[str]:
@@ -103,81 +135,119 @@ async def generate_sql_groq(prompt: str) -> Optional[str]:
         print(f"Groq API error: {e}")
     return None
 
-async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
-    """Uses Gemini to format the final grounded answer in UZ or RU."""
-    global GENAI_CLIENT
-    if not GEMINI_API_KEY:
-        return None
-    try:
-        if GENAI_CLIENT is None:
-            from google import genai
-            GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+def format_number(val: Any) -> str:
+    if isinstance(val, float):
+        if val >= 1_000_000_000_000:
+            return f"{val:,.2f}".replace(",", " ") + f" ({val/1e12:.2f} trln)"
+        elif val >= 1_000_000_000:
+            return f"{val:,.2f}".replace(",", " ") + f" ({val/1e9:.2f} mlrd)"
+        elif val >= 1_000_000:
+            return f"{val:,.2f}".replace(",", " ") + f" ({val/1e6:.2f} mln)"
+        return f"{val:,.2f}".replace(",", " ")
+    elif isinstance(val, int):
+        return f"{val:,}".replace(",", " ")
+    return str(val) if val is not None else "-"
 
-        lang_instruction = (
-            "Javobni O'ZBEK tilida, aniq, qisqa va faktlarga tayangan holda bering. Raqamlarni aniq ko'rsating."
-            if lang == "uz" else
-            "Ответьте на РУССКОМ языке, четко, кратко, строго на основе приведенных данных. Указывайте точные цифры."
-        )
-
-        data_preview = {
-            "columns": columns,
-            "row_count": len(rows),
-            "rows": rows[:15]
-        }
-
-        prompt = f"""
-Siz UZEX birja tahlilchisi agentsiz.
-Foydalanuvchi savoli: "{query}"
-
-Bajarilgan SQL so'rov:
-{sql}
-
-Ma'lumotlar bazasidan olingan natijalar:
-{json.dumps(data_preview, ensure_ascii=False, indent=2)}
-
-QOIDALAR:
-1. {lang_instruction}
-2. Faqat taqdim etilgan ma'lumotlarga tayaning! Hech narsani o'zingizdan to'qimang.
-3. Katta raqamlarni chiroyli formatda bering (masalan: 1 250 000 000 so'm yoki 1,25 mlrd so'm).
-4. Agar natijada kompaniya nomi, STIR yoki shartnoma raqami bo'lsa, ularni aniq ko'rsating.
-"""
-        response = GENAI_CLIENT.models.generate_content(
-            model=DEFAULT_GEMINI_MODEL,
-            contents=prompt,
-            config={"temperature": 0.2, "max_output_tokens": 1000}
-        )
-        if response and response.text:
-            return response.text.strip()
-    except Exception as e:
-        print(f"Gemini Answer Formatter error: {e}")
-    return None
-
-def fallback_format_table(columns: list, rows: list, lang: str) -> str:
-    """Deterministic fallback formatter if LLM is unavailable."""
+def deterministic_format(columns: List[str], rows: List[List[Any]], lang: str, query: str) -> str:
+    """Fast, accurate, deterministic response builder that doesn't consume LLM quota."""
     if not rows:
         return (
             "Taqdim etilgan maʼlumotlar bazasida bu soʻrov boʻyicha maʼlumot topilmadi."
             if lang == "uz" else
             "В предоставленных данных информация по данному запросу отсутствует."
         )
-    
-    header = "Topilgan natijalar:" if lang == "uz" else "Найденные результаты:"
-    lines = [f"**{header}**\n"]
+
+    # Single value result (e.g. COUNT, SUM, AVG)
+    if len(rows) == 1 and len(columns) == 1:
+        val = rows[0][0]
+        col = columns[0]
+        f_val = format_number(val)
+        if "count" in col.lower():
+            return f"Soʻrov boʻyicha jami **{f_val}** ta bitim topildi." if lang == "uz" else f"По вашему запросу найдено всего **{f_val}** сделок."
+        elif "sum" in col.lower():
+            unit = "soʻm" if "usd" not in col.lower() else "USD"
+            return f"Umumiy summa: **{f_val} {unit}**." if lang == "uz" else f"Общая сумма: **{f_val} {unit}**."
+        elif "avg" in col.lower():
+            return f"Oʻrtacha koʻrsatkich: **{f_val}**." if lang == "uz" else f"Средний показатель: **{f_val}**."
+        return f"Natija: **{f_val}**." if lang == "uz" else f"Результат: **{f_val}**."
+
+    # Single row multi-column result (e.g. 1 specific company, contract or leader)
+    if len(rows) == 1:
+        lines = ["**Tahlil natijasi:**\n" if lang == "uz" else "**Результат анализа:**\n"]
+        for col, val in zip(columns, rows[0]):
+            f_val = format_number(val)
+            lines.append(f"• **{col}:** {f_val}")
+        return "\n".join(lines)
+
+    # Multi-row table result (up to 10 rows)
+    title = f"Topilgan natijalar ({len(rows)} ta):" if lang == "uz" else f"Найденные результаты ({len(rows)}):"
+    lines = [f"**{title}**\n"]
     for i, r in enumerate(rows[:10], 1):
         item_parts = []
         for col_name, val in zip(columns, r):
-            if isinstance(val, (int, float)):
-                formatted_val = f"{val:,.2f}".replace(",", " ") if isinstance(val, float) else f"{val:,}".replace(",", " ")
-            else:
-                formatted_val = str(val) if val is not None else "-"
-            item_parts.append(f"{col_name}: **{formatted_val}**")
+            f_val = format_number(val)
+            item_parts.append(f"{col_name}: **{f_val}**")
         lines.append(f"{i}. " + " | ".join(item_parts))
-    
+
     if len(rows) > 10:
         more = f"\n_...va yana {len(rows)-10} ta yozuv_" if lang == "uz" else f"\n_...и еще {len(rows)-10} записей_"
         lines.append(more)
-        
+
     return "\n".join(lines)
+
+async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
+    """Uses Gemini to format the final grounded answer in UZ or RU."""
+    global GENAI_CLIENT
+    if not GEMINI_API_KEY:
+        return None
+        
+    models_to_try = [DEFAULT_GEMINI_MODEL] + FALLBACK_GEMINI_MODELS
+    for model_name in models_to_try:
+        try:
+            if GENAI_CLIENT is None:
+                from google import genai
+                GENAI_CLIENT = genai.Client(api_key=GEMINI_API_KEY)
+
+            lang_instruction = (
+                "Javobni O'ZBEK tilida, aniq, qisqa va faktlarga tayangan holda bering. Raqamlarni aniq ko'rsating."
+                if lang == "uz" else
+                "Ответьте на РУССКОМ языке, четко, кратко, строго на основе приведенных данных. Указывайте точные цифры."
+            )
+
+            data_preview = {
+                "columns": columns,
+                "row_count": len(rows),
+                "rows": rows[:10]
+            }
+
+            prompt = f"""
+Siz UZEX birja tahlilchisi agentsiz.
+Foydalanuvchi savoli: "{query}"
+
+Bajarilgan SQL so'rov:
+{sql}
+
+Baza natijalari:
+{json.dumps(data_preview, ensure_ascii=False, indent=2)}
+
+QOIDALAR:
+1. {lang_instruction}
+2. Faqat taqdim etilgan ma'lumotlarga tayaning! Hech narsani o'zingizdan to'qimang.
+3. Katta raqamlarni chiroyli formatda bering (masalan: 1 250 000 000 so'm yoki 1,25 mlrd so'm).
+4. Kompaniya nomi, STIR yoki shartnoma raqami bo'lsa, ularni aniq ko'rsating.
+"""
+            response = GENAI_CLIENT.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={"temperature": 0.2, "max_output_tokens": 800}
+            )
+            if response and response.text:
+                return response.text.strip()
+        except Exception as e:
+            # Continue to next model or fallback
+            continue
+
+    return None
 
 class AgentEngine:
     async def process_query(self, user_query: str) -> Dict[str, Any]:
@@ -273,12 +343,12 @@ class AgentEngine:
                 "status": "execution_error"
             }
 
-        # 5. Format Answer
+        # 5. Format Answer (LLM with deterministic fallback)
         formatted_answer = await format_answer_gemini(
             user_query, sql, exec_res["columns"], exec_res["rows"], lang
         )
         if not formatted_answer:
-            formatted_answer = fallback_format_table(exec_res["columns"], exec_res["rows"], lang)
+            formatted_answer = deterministic_format(exec_res["columns"], exec_res["rows"], lang, user_query)
 
         elapsed = round(time.time() - start_time, 2)
         return {
