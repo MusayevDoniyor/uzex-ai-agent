@@ -31,8 +31,12 @@ Tizim Oʻzbekiston respublika tovar-xom ashyo birjasining 2022–2026 yillardagi
    - 500 000 ta qatordan iborat bazada murakkab agregatsiya va JOIN soʻrovlari **80–120 millisekundda** bajariladi.
    - Umumiy javob qaytish vaqti: **1–3 soniya** (komissiya talabidagi 90 soniyadan ancha tez).
 
-5. **Shaffoflik va asoslanganlik (Data Provenance):**
-   - Har bir javob tagida bajarilgan aniq SQL soʻrov va sarflangan vaqt koʻrsatiladi.
+5. **Interaktiv Terminal CLI va Zamonaviy Veb-Interfeys:**
+   - Rangli va tezyurar buyruqlar qatori interfeysi (`python cli.py`) orqali brauzersiz darhol soʻrov berish.
+   - Tovarlar aylanmasi va brokerlar reytingini jonli koʻrsatuvchi zamonaviy glassmorphic qorongʻi mavzudagi veb-portal.
+
+6. **Shaffoflik va asoslanganlik (Data Provenance):**
+   - Har bir javob tagida macOS terminal uslubidagi aniq SQL soʻrov, nusxa olish tugmasi va sarflangan vaqt koʻrsatiladi.
 
 ---
 

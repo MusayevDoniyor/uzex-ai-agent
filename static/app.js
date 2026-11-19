@@ -134,7 +134,22 @@ function renderAnswer(payload) {
   const shownLabel = payload.language === "ru" ? "показано" : "ko'rsatilgan";
   const grouped = payload.evidence?.group_by?.length;
   const rows = payload.rows_matched !== null && payload.rows_matched !== undefined ? `<span>${formatNumber(payload.rows_matched, payload.language)} ${rowLabel}${grouped && payload.evidence.groups_returned ? ` · ${formatNumber(payload.evidence.groups_returned, payload.language)} ${shownLabel}` : ""}</span>` : "";
-  const sqlHtml = payload.sql ? `<div class="sql-provenance" style="margin:14px 0;padding:10px 14px;background:rgba(10,16,36,0.9);border:1px solid rgba(94,231,208,0.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:0.75rem;color:#5ee7d0;overflow-x:auto;line-height:1.4;"><span style="color:#8e9ab9;display:block;margin-bottom:4px;font-size:0.65rem;letter-spacing:0.06em;text-transform:uppercase;">🔍 Baza SQL soʻrovi (Grounding Provenance):</span><code>${escapeHtml(payload.sql)}</code></div>` : "";
+  const sqlHtml = payload.sql ? `
+    <div class="sql-terminal" style="margin: 16px 0; border: 1px solid rgba(94,231,208,0.25); border-radius: 10px; background: rgba(5,10,24,0.95); overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.3);">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 7px 12px; background: rgba(15,25,52,0.8); border-bottom: 1px solid rgba(94,231,208,0.15);">
+        <div style="display: flex; gap: 6px; align-items: center;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #ff5f56; display: inline-block;"></span>
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #ffbd2e; display: inline-block;"></span>
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #27c93f; display: inline-block;"></span>
+          <span style="margin-left: 6px; color: #8e9ab9; font: 500 0.62rem 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase;">SQL Provenance · Verified Grounding</span>
+        </div>
+        <button type="button" onclick="navigator.clipboard.writeText(this.dataset.sql); this.textContent='✓ Copied'; setTimeout(() => this.textContent='Copy', 1500);" data-sql="${escapeHtml(payload.sql)}" style="background: transparent; border: 0; color: #7886a6; font: 500 0.6rem 'DM Mono', monospace; cursor: pointer; padding: 2px 6px;">Copy</button>
+      </div>
+      <div style="padding: 12px 14px; font-family: 'DM Mono', monospace; font-size: 0.74rem; color: #5ee7d0; overflow-x: auto; line-height: 1.5;">
+        <code>${escapeHtml(payload.sql)}</code>
+      </div>
+    </div>
+  ` : "";
   answerCard.innerHTML = `<div class="answer-topline"><div><span class="answer-label">${payload.language === "ru" ? "ОТВЕТ" : "JAVOB"}</span><span class="query-type">${escapeHtml(labelForQuery(payload.query_type, payload.language))}</span></div><span class="answer-time"><small>${escapeHtml(localized.answerTime)}</small> ⚡ ${escapeHtml(formatDuration(payload.latency_ms))}</span></div><div class="answer-summary"><span>${escapeHtml(localized.shortSummary)}</span><p class="answer-text">${escapeHtml(payload.answer || localized.noAnswer)}</p></div>${sqlHtml}${renderAggregateVisual(payload)}${renderEvidence(payload.evidence, payload.language)}<div class="answer-footer"><span class="source-check">✓ ${escapeHtml(localized.source)}</span>${rows}</div>`;
 }
 

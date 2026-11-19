@@ -22,6 +22,7 @@ An enterprise-grade analytical AI agent and **Model Context Protocol (MCP)** ser
 - **Model Context Protocol (MCP) Server:** Native stdio JSON-RPC 2.0 interface enabling Claude Code, Cursor, Codex, and [Agensi.io](https://agensi.io) agents to run UZEX queries as first-class tools.
 - **Bilingual & Script Agnostic:** Flawlessly understands Uzbek (Latin & Cyrillic), Russian, and English queries with exact language-matched analytical summaries.
 - **Sub-150ms Query Execution:** Highly optimized SQLite database with 12 covering indexes, custom Unicode case-folding for Cyrillic and Latin, and precalculated trade units.
+- **Interactive Terminal CLI & Modern Web UI:** Includes a standalone ANSI-colored terminal CLI REPL (`python cli.py`) and a responsive, glassmorphic dark-mode web portal with live commodity breakdown and broker activity rankings.
 - **Complete Open-Source Stack:** Includes FastAPI REST API, Swagger UI, Telegram Bot, interactive Web interface, synthetic sample DB generator, and a comprehensive Pytest test suite.
 
 ---

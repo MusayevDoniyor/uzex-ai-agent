@@ -139,3 +139,47 @@ textarea::placeholder { color: #64708e; } textarea:focus { border-color: rgba(94
 .skeleton-chart span { display: block; height: 10px; border-radius: 999px; background: linear-gradient(100deg, rgba(131,151,207,.1) 25%, rgba(94,231,208,.22) 50%, rgba(131,151,207,.1) 75%); background-size: 220% 100%; animation: shimmer 1.65s linear infinite; }
 .skeleton-chart span:nth-child(1) { width: 94%; } .skeleton-chart span:nth-child(2) { width: 78%; animation-delay: .16s; } .skeleton-chart span:nth-child(3) { width: 63%; animation-delay: .32s; }
 @media (prefers-reduced-motion: reduce) { .meta-value.is-skeleton, .meta-skeleton-text, .skeleton-chart span { animation: none; } }
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(8, 13, 29, 0.6); }
+::-webkit-scrollbar-thumb { background: rgba(142, 162, 211, 0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(94, 231, 208, 0.5); }
+
+/* Interactive polish & micro-interactions */
+.chart-row {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+.chart-row:hover {
+  transform: translateX(4px);
+  background: rgba(94, 231, 208, 0.07);
+}
+
+.analytics-panel {
+  border: 1px solid rgba(94, 231, 208, 0.2);
+  background: linear-gradient(135deg, rgba(20, 32, 60, 0.92), rgba(8, 15, 33, 0.95));
+  backdrop-filter: blur(16px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.tab-buttons .prompt {
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.tab-buttons .prompt:hover {
+  transform: translateY(-1px);
+}
+
+.ask-panel:focus-within {
+  border-color: rgba(94, 231, 208, 0.4);
+}
+
+.stat-card {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(94, 231, 208, 0.3);
+}
