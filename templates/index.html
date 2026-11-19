@@ -40,6 +40,28 @@
           <section class="panel how-panel"><p class="panel-kicker" data-i18n="howKicker">HOW IT WORKS</p><h2 data-i18n="howTitle">Har bir javobning yo'li</h2><div class="flow"><div class="flow-step"><span>01</span><div><b data-i18n="flowAi">AI tushunadi</b><small data-i18n="flowAiCopy">RU / UZ savolni tahlil qiladi</small></div></div><div class="flow-line"></div><div class="flow-step"><span>02</span><div><b data-i18n="flowSql">SQL tekshiradi</b><small data-i18n="flowSqlCopy">Faqat ruxsat etilgan query</small></div></div><div class="flow-line"></div><div class="flow-step"><span>03</span><div><b data-i18n="flowData">Dataset javob beradi</b><small data-i18n="flowDataCopy">Manba va tezlik ko'rsatiladi</small></div></div></div></section>
         </aside>
       </section>
+
+      <section class="panel analytics-panel" style="margin-top: 24px; padding: 25px;">
+        <div class="panel-heading" style="margin-bottom: 16px;">
+          <div>
+            <p class="panel-kicker" data-i18n="analyticsKicker">LIVE MARKET INTELLIGENCE</p>
+            <h2 data-i18n="analyticsTitle">Birja Yetakchilari va Tovar Tahlili</h2>
+          </div>
+          <div class="tab-buttons" style="display: flex; gap: 8px;">
+            <button type="button" class="prompt is-active" id="tab-commodities-btn" data-i18n="tabCommodities" style="border-color: var(--cyan); color: var(--cyan); background: rgba(94,231,208,.1);">🌾 Asosiy Tovarlar</button>
+            <button type="button" class="prompt" id="tab-brokers-btn" data-i18n="tabBrokers">🏢 Top Brokerlar</button>
+          </div>
+        </div>
+        <div id="analytics-content">
+          <div id="commodities-chart-wrap">
+            <div class="loading-state" style="padding: 20px;"><div class="loader"></div><span>Ma'lumotlar yuklanmoqda...</span></div>
+          </div>
+          <div id="brokers-chart-wrap" style="display: none;">
+            <div class="loading-state" style="padding: 20px;"><div class="loader"></div><span>Ma'lumotlar yuklanmoqda...</span></div>
+          </div>
+        </div>
+      </section>
+
       <footer class="footer"><span>UZEX AI HACKATHON</span><span data-i18n="footerCopy">Answers grounded in supplied UZEX data</span></footer>
     </main>
     <script src="/static/app.js"></script>

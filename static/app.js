@@ -12,12 +12,14 @@ const i18n = {
   uz: {
     heroLine1: "Birja ma'lumotlari,", heroLine2: "aniq javoblar.", heroCopy: "UZEX savdo ma'lumotlarini rus yoki o'zbek tilida so'rang. AI savolni tushunadi, xavfsiz so'rov tuzadi va javobni faqat berilgan dataset asosida tekshiradi.",
     trustVerified: "Manba bilan tekshirilgan", trustFast: "Tezkor javob", trustLanguages: "RU / UZ", askKicker: "ASK THE DATA", askTitle: "Savolingizni yozing", questionLabel: "Savol", questionPlaceholder: "Masalan: 2025-yilda nechta bitim bo'lgan?", tryLabel: "Sinab ko'ring", promptYear: "2025 statistikasi", promptRegions: "Top 3 hudud", promptDeal: "Сделка №100001", askButton: "Javobni ko'rish", emptyTitle: "Javob shu yerda chiqadi", emptyCopy: "Savol bering — biz datasetdan topamiz.", coverageKicker: "DATASET COVERAGE", coverageTitle: "Biz nimani bilamiz?", verified: "✓ verified", deals: "bitimlar", realRecords: "real UZEX records", contracts: "shartnomalar", participants: "ishtirokchilar", brokers: "brokerlar", coverageRange: "Qamrov", howKicker: "HOW IT WORKS", howTitle: "Har bir javobning yo'li", flowAi: "AI tushunadi", flowAiCopy: "RU / UZ savolni tahlil qiladi", flowSql: "SQL tekshiradi", flowSqlCopy: "Faqat ruxsat etilgan query", flowData: "Dataset javob beradi", flowDataCopy: "Manba va tezlik ko'rsatiladi", footerCopy: "Javoblar berilgan UZEX datasetiga asoslangan",
-    checking: "Ma'lumotlar tekshirilmoqda", stageAi: "AI savolni UZEX datasetiga moslashtiryapti", stageSql: "Ruxsat etilgan SQL query tuzilyapti", stageVerify: "Natija va dalillar tekshirilmoqda", buttonLoading: "Tekshirilmoqda...", shortSummary: "QISQA XULOSA", answerTime: "Javob vaqti", recordsInFilter: "filterdagi yozuv", shown: "ko'rsatilgan natija", source: "UZEX dataset bilan tekshirilgan", noAnswer: "Javob topilmadi.", requestError: "So'rov bajarilmadi", requestErrorCopy: "Internet yoki server bilan bog'lanib bo'lmadi.", queryLabels: { get_deal: "Bitim ma'lumoti", get_contract: "Shartnoma ma'lumoti", aggregate_deals: "Statistik tahlil", search_deals: "Bitimlar qidiruvi", search_participant: "Ishtirokchi qidiruvi", get_broker: "Broker ma'lumoti", get_exchange_rate: "Valyuta kursi" }, groupLabels: { year: "Yillar", month: "Oylar", region: "Hududlar", product: "Mahsulotlar", status: "Statuslar", currency: "Valyutalar", seller: "Sotuvchilar", buyer: "Xaridorlar" }, chartTop: "Eng yuqori natijalar", chartTrend: "Dinamikasi", metricDeal: "bitim", metricValue: "qiymat", calculated: "UZEX datasetdan hisoblangan"
+    checking: "Ma'lumotlar tekshirilmoqda", stageAi: "AI savolni UZEX datasetiga moslashtiryapti", stageSql: "Ruxsat etilgan SQL query tuzilyapti", stageVerify: "Natija va dalillar tekshirilmoqda", buttonLoading: "Tekshirilmoqda...", shortSummary: "QISQA XULOSA", answerTime: "Javob vaqti", recordsInFilter: "filterdagi yozuv", shown: "ko'rsatilgan natija", source: "UZEX dataset bilan tekshirilgan", noAnswer: "Javob topilmadi.", requestError: "So'rov bajarilmadi", requestErrorCopy: "Internet yoki server bilan bog'lanib bo'lmadi.", queryLabels: { get_deal: "Bitim ma'lumoti", get_contract: "Shartnoma ma'lumoti", aggregate_deals: "Statistik tahlil", search_deals: "Bitimlar qidiruvi", search_participant: "Ishtirokchi qidiruvi", get_broker: "Broker ma'lumoti", get_exchange_rate: "Valyuta kursi" }, groupLabels: { year: "Yillar", month: "Oylar", region: "Hududlar", product: "Mahsulotlar", status: "Statuslar", currency: "Valyutalar", seller: "Sotuvchilar", buyer: "Xaridorlar" }, chartTop: "Eng yuqori natijalar", chartTrend: "Dinamikasi", metricDeal: "bitim", metricValue: "qiymat", calculated: "UZEX datasetdan hisoblangan",
+    analyticsKicker: "BOZOR TAHLILI", analyticsTitle: "Birja Yetakchilari va Tovar Aylanmasi", tabCommodities: "🌾 Asosiy Tovarlar", tabBrokers: "🏢 Top Brokerlar"
   },
   ru: {
     heroLine1: "Биржевые данные,", heroLine2: "точные ответы.", heroCopy: "Задавайте вопросы о торгах UZEX на русском или узбекском. AI понимает вопрос, строит безопасный запрос и проверяет ответ только по предоставленному набору данных.",
     trustVerified: "Проверено источником", trustFast: "Быстрый ответ", trustLanguages: "RU / UZ", askKicker: "СПРОСИТЕ ДАННЫЕ", askTitle: "Напишите вопрос", questionLabel: "Вопрос", questionPlaceholder: "Например: сколько сделок было в 2025 году?", tryLabel: "Попробуйте", promptYear: "Статистика 2025", promptRegions: "Топ-3 региона", promptDeal: "Сделка №100001", askButton: "Получить ответ", emptyTitle: "Ответ появится здесь", emptyCopy: "Задайте вопрос — мы найдём его в данных.", coverageKicker: "ОБЪЁМ ДАННЫХ", coverageTitle: "Что мы знаем?", verified: "✓ проверено", deals: "сделок", realRecords: "реальные записи UZEX", contracts: "контрактов", participants: "участников", brokers: "брокеров", coverageRange: "Период", howKicker: "КАК ЭТО РАБОТАЕТ", howTitle: "Путь каждого ответа", flowAi: "AI понимает", flowAiCopy: "Анализирует вопрос на RU / UZ", flowSql: "SQL проверяет", flowSqlCopy: "Только разрешённый запрос", flowData: "Данные отвечают", flowDataCopy: "Источник и скорость видны", footerCopy: "Ответы основаны на предоставленных данных UZEX",
-    checking: "Проверяем данные", stageAi: "AI связывает вопрос с набором UZEX", stageSql: "Строим разрешённый SQL-запрос", stageVerify: "Проверяем результат и доказательства", buttonLoading: "Проверяем...", shortSummary: "КРАТКИЙ ИТОГ", answerTime: "Время ответа", recordsInFilter: "записей в фильтре", shown: "показано результатов", source: "Проверено по данным UZEX", noAnswer: "Ответ не найден.", requestError: "Запрос не выполнен", requestErrorCopy: "Не удалось подключиться к интернету или серверу.", queryLabels: { get_deal: "Данные сделки", get_contract: "Данные контракта", aggregate_deals: "Статистический анализ", search_deals: "Поиск сделок", search_participant: "Поиск участника", get_broker: "Данные брокера", get_exchange_rate: "Курс валюты" }, groupLabels: { year: "Годы", month: "Месяцы", region: "Регионы", product: "Товары", status: "Статусы", currency: "Валюты", seller: "Продавцы", buyer: "Покупатели" }, chartTop: "Лучшие результаты", chartTrend: "Динамика", metricDeal: "сделки", metricValue: "значение", calculated: "Рассчитано по данным UZEX"
+    checking: "Проверяем данные", stageAi: "AI связывает вопрос с набором UZEX", stageSql: "Строим разрешённый SQL-запрос", stageVerify: "Проверяем результат и доказательства", buttonLoading: "Проверяем...", shortSummary: "КРАТКИЙ ИТОГ", answerTime: "Время ответа", recordsInFilter: "записей в фильтре", shown: "показано результатов", source: "Проверено по данным UZEX", noAnswer: "Ответ не найден.", requestError: "Запрос не выполнен", requestErrorCopy: "Не удалось подключиться к интернету или серверу.", queryLabels: { get_deal: "Данные сделки", get_contract: "Данные контракта", aggregate_deals: "Статистический анализ", search_deals: "Поиск сделок", search_participant: "Поиск участника", get_broker: "Данные брокера", get_exchange_rate: "Курс валюты" }, groupLabels: { year: "Годы", month: "Месяцы", region: "Регионы", product: "Товары", status: "Статусы", currency: "Валюты", seller: "Продавцы", buyer: "Покупатели" }, chartTop: "Лучшие результаты", chartTrend: "Динамика", metricDeal: "сделки", metricValue: "значение", calculated: "Рассчитано по данным UZEX",
+    analyticsKicker: "АНАЛИТИКА РЫНКА", analyticsTitle: "Лидеры Биржи и Оборот Товаров", tabCommodities: "🌾 Основные Товары", tabBrokers: "🏢 Топ Брокеров"
   }
 };
 
@@ -171,6 +173,7 @@ document.querySelectorAll(".locale-btn").forEach((button) => button.addEventList
   uiLanguage = nextLanguage;
   localStorage.setItem("uzex-language", uiLanguage);
   applyLanguage();
+  loadMarketAnalytics();
   // Refresh the visible answer so prose and labels cannot remain in the old language.
   if (lastQuestion && !askButton.disabled) ask(lastQuestion);
 }));
@@ -209,5 +212,113 @@ async function loadMeta() {
   }
 }
 
+async function loadMarketAnalytics() {
+  const commWrap = document.querySelector("#commodities-chart-wrap");
+  const brokWrap = document.querySelector("#brokers-chart-wrap");
+  if (!commWrap || !brokWrap) return;
+
+  try {
+    const [commRes, brokRes] = await Promise.all([
+      fetch("/api/commodities?limit=5"),
+      fetch("/api/brokers/top?limit=5")
+    ]);
+    const commData = await commRes.json();
+    const brokData = await brokRes.json();
+
+    // Render Commodities
+    if (commData.commodities && commData.commodities.length) {
+      const maxTurnover = Math.max(...commData.commodities.map(c => c.total_turnover || 0), 1);
+      commWrap.innerHTML = `
+        <div class="chart-block" style="margin: 0;">
+          <div class="chart-heading">
+            <span>${uiLanguage === 'ru' ? 'Топ-5 биржевых товаров по объёму' : 'Eng yirik tovarlar (aylanma boʻyicha)'}</span>
+            <small>${uiLanguage === 'ru' ? 'Реальные данные UZEX' : 'Haqiqiy UZEX maʼlumotlari'}</small>
+          </div>
+          ${commData.commodities.map((item, idx) => {
+            const pct = Math.max(8, Math.round(((item.total_turnover || 0) / maxTurnover) * 100));
+            const rank = String(idx + 1).padStart(2, "0");
+            const sumStr = formatNumber(Math.round(item.total_turnover / 1e9), uiLanguage) + (uiLanguage === 'ru' ? ' млрд сум' : ' mlrd soʻm');
+            return `
+              <div class="chart-row chart-tone-${(idx % 3) + 1}">
+                <span class="chart-rank">${rank}</span>
+                <div class="chart-label" title="${escapeHtml(item.product_name)}">${escapeHtml(item.product_name)}</div>
+                <div class="chart-track"><span style="width:${pct}%"></span></div>
+                <b class="chart-value">${sumStr}</b>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    // Render Brokers
+    if (brokData.brokers && brokData.brokers.length) {
+      const maxTurnover = Math.max(...brokData.brokers.map(b => b.total_turnover || 0), 1);
+      brokWrap.innerHTML = `
+        <div class="chart-block" style="margin: 0;">
+          <div class="chart-heading">
+            <span>${uiLanguage === 'ru' ? 'Топ брокерских контор' : 'Yetakchi brokerlik idoralari'}</span>
+            <small>${uiLanguage === 'ru' ? 'Сделки продавцов и покупателей' : 'Bitimlar hajmi boʻyicha'}</small>
+          </div>
+          ${brokData.brokers.map((item, idx) => {
+            const pct = Math.max(8, Math.round(((item.total_turnover || 0) / maxTurnover) * 100));
+            const rank = String(idx + 1).padStart(2, "0");
+            const sumStr = formatNumber(Math.round(item.total_turnover / 1e9), uiLanguage) + (uiLanguage === 'ru' ? ' млрд сум' : ' mlrd soʻm');
+            return `
+              <div class="chart-row chart-tone-${(idx % 3) + 1}">
+                <span class="chart-rank">${rank}</span>
+                <div class="chart-label" title="${escapeHtml(item.name)}">${escapeHtml(item.broker_code)} · ${escapeHtml(item.name)}</div>
+                <div class="chart-track"><span style="width:${pct}%"></span></div>
+                <b class="chart-value">${sumStr}</b>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.warn("Could not load market analytics:", err);
+  }
+}
+
+// Tab switcher
+const tabCommBtn = document.querySelector("#tab-commodities-btn");
+const tabBrokBtn = document.querySelector("#tab-brokers-btn");
+const commWrapEl = document.querySelector("#commodities-chart-wrap");
+const brokWrapEl = document.querySelector("#brokers-chart-wrap");
+
+if (tabCommBtn && tabBrokBtn) {
+  tabCommBtn.addEventListener("click", () => {
+    tabCommBtn.classList.add("is-active");
+    tabCommBtn.style.borderColor = "var(--cyan)";
+    tabCommBtn.style.color = "var(--cyan)";
+    tabCommBtn.style.background = "rgba(94,231,208,.1)";
+
+    tabBrokBtn.classList.remove("is-active");
+    tabBrokBtn.style.borderColor = "";
+    tabBrokBtn.style.color = "";
+    tabBrokBtn.style.background = "";
+
+    if (commWrapEl) commWrapEl.style.display = "block";
+    if (brokWrapEl) brokWrapEl.style.display = "none";
+  });
+
+  tabBrokBtn.addEventListener("click", () => {
+    tabBrokBtn.classList.add("is-active");
+    tabBrokBtn.style.borderColor = "var(--cyan)";
+    tabBrokBtn.style.color = "var(--cyan)";
+    tabBrokBtn.style.background = "rgba(94,231,208,.1)";
+
+    tabCommBtn.classList.remove("is-active");
+    tabCommBtn.style.borderColor = "";
+    tabCommBtn.style.color = "";
+    tabCommBtn.style.background = "";
+
+    if (commWrapEl) commWrapEl.style.display = "none";
+    if (brokWrapEl) brokWrapEl.style.display = "block";
+  });
+}
+
 applyLanguage();
 loadMeta();
+loadMarketAnalytics();
