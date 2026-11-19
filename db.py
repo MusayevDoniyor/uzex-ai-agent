@@ -17,7 +17,9 @@ def py_like(pattern: Any, text: Any) -> bool:
     # Fast-path for common '%keyword%' pattern
     if pattern_str.startswith('%') and pattern_str.endswith('%') and '%' not in pattern_str[1:-1] and '_' not in pattern_str:
         return pattern_str[1:-1] in text_str
-    regex = '^' + re.escape(pattern_str).replace(r'\%', '.*').replace(r'\_', '.') + '$'
+    # SQL LIKE conversion: escape regex metachars then convert % -> .* and _ -> .
+    escaped = re.escape(pattern_str).replace(r'\%', '%').replace(r'\_', '_')
+    regex = '^' + escaped.replace('%', '.*').replace('_', '.') + '$'
     return bool(re.search(regex, text_str, re.DOTALL))
 
 class DBClient:

@@ -1,113 +1,198 @@
-# 🏛️ UZEX AI Agent — OʻzRTXB Birja Bitimlari Tahlili
+# 🏛️ UZEX AI Agent — Commodity Exchange Intelligence & MCP Server
 
-**UZEX AI Hackathon 2026** saralash bosqichi uchun ishlab chiqilgan tahliliy AI-agent.
-Tizim Oʻzbekiston respublika tovar-xom ashyo birjasining 2022–2026 yillardagi **500 000 ta birja bitimi**, shartnoma kartochkalari, savdo ishtirokchilari, brokerlar va kunlik AQSh dollari kurslari asosida ishlaydi.
+[![CI](https://github.com/MusayevDoniyor/uzex-ai-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/MusayevDoniyor/uzex-ai-agent/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![MCP Enabled](https://img.shields.io/badge/MCP-Standard%202024--11--05-9cf.svg?logo=anthropic&logoColor=white)](https://modelcontextprotocol.io)
+[![Gemini 2.5](https://img.shields.io/badge/Google-Gemini%202.5-4285F4.svg?logo=google&logoColor=white)](https://ai.google.dev)
+[![Groq Resilience](https://img.shields.io/badge/Groq-Llama--3.3--70B-orange.svg?logo=groq&logoColor=white)](https://groq.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-🌐 **GitHub:** [https://github.com/MusayevDoniyor/uzex-ai-agent](https://github.com/MusayevDoniyor/uzex-ai-agent)
+An enterprise-grade analytical AI agent and **Model Context Protocol (MCP)** server for the **Uzbek Republican Commodity Exchange (UZEX / OʻzRTXB)**. Answers complex analytical queries across **500,000 spot and futures transactions (2022–2026)**, 6,600+ contract specifications, 14,000+ registered market participants, 120 broker offices, and daily Central Bank (CBU) USD exchange rates with sub-2-second latency and zero hallucinations.
 
----
-
-## ⚡ Asosiy Imkoniyatlar
-
-1. **Aniq va faktlarga asoslangan (Zero Hallucination Guarantee):**
-   - Agent javoblarni faqatgina SQL orqali maʼlumotlar bazasidan olingan haqiqiy yozuvlar asosida shakllantiradi.
-   - Agar soʻralgan maʼlumot bazada mavjud boʻlmasa (masalan, roʻyxatda yoʻq tovar yoki korxona), agent qatʼiy ravishda:
-     - 🇺🇿 *"Taqdim etilgan birja maʼlumotlarida bu soʻrov boʻyicha maʼlumot topilmadi."*
-     - 🇷🇺 *"В предоставленных биржевых данных информация по данному запросу отсутствует."*
-     deb javob qaytaradi va hech qachon raqam toʻqimaydi.
-
-2. **Ikki tilli (Bilingual RU + UZ):**
-   - Oʻzbek va rus tillaridagi savollarni tabiiy tushunadi va savol berilgan tilda mukammal javob beradi.
-
-3. **Yuqori tezlik (High Performance):**
-   - 500 000 ta qatordan iborat bazada murakkab agregatsiya va JOIN soʻrovlari **80–120 millisekundda** bajariladi.
-   - Umumiy javob qaytish vaqti: **1–3 soniya** (komissiya talabidagi 90 soniyadan ancha tez).
-
-4. **Shaffoflik va asoslanganlik (Data Provenance):**
-   - Har bir javob tagida bajarilgan aniq SQL soʻrov va sarflangan vaqt koʻrsatiladi.
+🇺🇿 **Oʻzbek tilidagi toʻliq hujjatlar:** [README.uz.md](README.uz.md)  
+🤖 **Agent Skill Specification:** [SKILL.md](SKILL.md)
 
 ---
 
-## 🏗️ Tizim Arxitekturasi
+## ⚡ Key Highlights
+
+- **Zero-Hallucination Grounding:** Pure Text-to-SQL architecture. Answers are computed exclusively from database records. Out-of-catalog entities or empty result sets immediately trigger verified refusal responses rather than speculative approximations.
+- **Multi-Provider LLM Resilience:** Primary generation via Google Gemini (`gemini-2.5-flash-lite`, `gemini-2.5-flash`), automatic failover to Groq (`llama-3.3-70b-versatile`), and deterministic regex rule engine fallback for zero-downtime operation during 429 quota exhaustion.
+- **Model Context Protocol (MCP) Server:** Native stdio JSON-RPC 2.0 interface enabling Claude Code, Cursor, Codex, and [Agensi.io](https://agensi.io) agents to run UZEX queries as first-class tools.
+- **Bilingual & Script Agnostic:** Flawlessly understands Uzbek (Latin & Cyrillic), Russian, and English queries with exact language-matched analytical summaries.
+- **Sub-150ms Query Execution:** Highly optimized SQLite database with 12 covering indexes, custom Unicode case-folding for Cyrillic and Latin, and precalculated trade units.
+- **Complete Open-Source Stack:** Includes FastAPI REST API, Swagger UI, Telegram Bot, interactive Web interface, synthetic sample DB generator, and a comprehensive Pytest test suite.
+
+---
+
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
-    User["👤 Foydalanuvchi / Komissiya\n(Telegram yoki Veb-interfeys)"] --> Router["🌐 Til va Domen Tekshiruvi"]
-    Router --> Prompt["📋 Sxema va Few-shot Generator"]
-    Prompt --> LLM["🧠 Google Gemini Flash (gemini-3.8-flash)"]
-    LLM -->|SQL Query| Validator["🛡️ Xavfsizlik Tekshiruvi (Read-only SELECT)"]
-    Validator --> DB[("🗄️ SQLite Ma'lumotlar Bazasi\n500 000 ta bitim + 12 ta indeks")]
-    DB -->|Natija 0 ta bo'lsa| Refusal["🚫 Qat'iy Rad Javobi (No Hallucination)"]
-    DB -->|Natija topilsa| Formatter["📝 Natijani Formatlash + Asoslar"]
-    Refusal --> Response["💬 Yakuniy Javob"]
-    Formatter --> Response
-    Response --> User
+    Client["👤 Client / Agent Interface\n(Claude Code, Cursor, Agensi, Web UI, Telegram, REST API)"]
+    
+    subgraph Routing ["1. Intent & Domain Gating"]
+        Router["🌐 Language & Script Detector\n(uz-Latn, uz-Cyrl, ru-Cyrl, en)"]
+        Guard["🛡️ Domain Guardrail & Small Talk Filter\n(Rejects Out-of-Domain Queries)"]
+    end
+
+    subgraph LLM_Layer ["2. Resilient Text-to-SQL Pipeline"]
+        PromptGen["📋 Dynamic Schema & Few-shot Injector"]
+        Gemini["🧠 Primary: Google Gemini 2.5 Flash"]
+        Groq["⚡ Fallback: Groq Llama-3.3-70B (429 / Timeout)"]
+        RuleFallback["⚙️ Deterministic Rule Engine (Offline Fallback)"]
+    end
+
+    subgraph Execution ["3. Security & Database"]
+        Security["🔒 SQL Validator (Strict Read-Only SELECT)"]
+        DB[("🗄️ SQLite Engine (uzex.db)\n500,000 Deals + 12 Indexes\nCustom Unicode Case-Folding")]
+    end
+
+    subgraph Presentation ["4. Verification & Formatting"]
+        ZeroHallucination{"Data Found?"}
+        Refusal["🚫 Verified Zero-Data Refusal"]
+        AIFormatter["📝 Contextual Analytical Summary\n(Entity Highlighting & Currency Conversion)"]
+    end
+
+    Client --> Router --> Guard --> PromptGen
+    PromptGen --> Gemini
+    Gemini -.->|Failover| Groq
+    Groq -.->|Failover| RuleFallback
+    Gemini --> Security
+    Groq --> Security
+    RuleFallback --> Security
+    Security --> DB --> ZeroHallucination
+    ZeroHallucination -- "0 Rows" --> Refusal --> Client
+    ZeroHallucination -- ">= 1 Rows" --> AIFormatter --> Client
 ```
 
 ---
 
-## 📊 Maʼlumotlar Bazasi Tuzilishi
+## 📊 Database Schema & Domain Coverage
 
-* `deals`: 500 000 ta bitim (2022–2026 yillar). Maydonlar: raqam, sana, vaqt, auksion turi, hajm, summa, narx, shartnoma, tovar, oʻlchov birligi, viloyat, holat, sotuvchi/xaridor STIR, brokerlar, toʻlov/yetkazish sanalari.
-* `contracts`: 6 616 ta shartnoma kartochkasi. Tovar guruhi, toifasi, TIFT kodi (TN VED), toʻlov va yetkazib berish kunlari, garov foizi, ombor manzili.
-* `participants`: 14 392 ta kompaniya (sotuvchilar va xaridorlar). Nomi, STIR, viloyati, faoliyat turi, QQS toʻlovchi maqomi.
-* `brokers`: 120 ta brokerlik idorasi (kod, nom, STIR, viloyat).
-* `usd_rates`: 1 765 kunlik Markaziy bank dollar kursi (eksport bitimlarini soʻmga oʻgirish uchun).
+| Table | Records | Description | Key Attributes |
+| :--- | :--- | :--- | :--- |
+| `deals` | **500,000** | Spot & futures trade transactions (2022–2026) | `deal_number`, `deal_date`, `product_name`, `quantity`, `lot_size`, `volume_units`, `unit_price`, `deal_sum`, `seller_inn`, `buyer_inn`, `seller_broker`, `buyer_broker`, `deal_status` |
+| `contracts` | **6,616** | Commodity specification cards | `contract_number`, `product_name`, `brand`, `tn_ved_code`, `base_price`, `payment_days`, `delivery_days`, `warehouse_address` |
+| `participants` | **14,392** | Trading enterprises and companies | `inn` (9-digit STIR), `name`, `region`, `activity_type`, `role`, `vat_payer` |
+| `brokers` | **120** | Registered brokerage offices | `broker_code` (`BK001`–`BK120`), `name`, `region`, `inn` |
+| `usd_rates` | **1,765** | Daily Central Bank (CBU) USD/UZS rates | `rate_date` (2022-01-01 to 2026-10-30), `rate` (UZS per 1 USD) |
 
 ---
 
-## 🚀 Ishga Tushirish
+## 🔌 Model Context Protocol (MCP) Integration
 
-### 1. Talablar:
-- Python 3.10+
-- Google Gemini API Key
+Connect UZEX AI Agent directly to **Claude Desktop**, **Claude Code**, **Cursor**, or **Codex** using the standard Model Context Protocol.
 
-### 2. Oʻrnatish:
+### Claude Desktop Configuration
+Add the following snippet to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "uzex-analytics": {
+      "command": "python",
+      "args": [
+        "path/to/uzex-ai-agent/mcp_server.py"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "your_gemini_api_key_here",
+        "GROQ_API_KEY": "your_groq_api_key_here"
+      }
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+1. `query_uzex_market(question: string, language: string)`
+   - Performs natural language text-to-SQL translation and returns verified market answers.
+2. `lookup_deal(deal_number: integer)`
+   - Fetches complete transaction card details, parties, and execution status for any transaction.
+3. `get_commodity_trends(product_name: string, year: integer)`
+   - Computes aggregated monthly trade volume, average unit price, and deal turnover for commodities (e.g. `sement`, `bug'doy`, `benzin`, `shakar`).
+4. `get_usd_exchange_rate(date: string)`
+   - Retrieves the official CBU USD/UZS exchange rate for currency conversions.
+
+---
+
+## 🚀 Quickstart
+
+### 1. Prerequisites
+- Python 3.10 or higher
+- Google Gemini API key ([Google AI Studio](https://aistudio.google.com/)) or Groq API key ([GroqCloud](https://console.groq.com/))
+
+### 2. Installation
 ```bash
 git clone https://github.com/MusayevDoniyor/uzex-ai-agent.git
 cd uzex-ai-agent
 pip install -r requirements.txt
 ```
 
-### 3. Maʼlumotlar bazasini yaratish:
+### 3. Initialize Database
+Choose between instant sample mode or the full 500k dataset:
+
 ```bash
+# Option A: Instant Sample DB (<1 second, ideal for local tests & CI/CD)
+python build_sample_db.py
+
+# Option B: Full Production Database (unpacks 500,000 deals in ~15 seconds)
 python build_db.py
 ```
-*(Arxivdan maʼlumotlarni chiqarib, 15 soniya ichida indekslangan `uzex.db` yaratadi).*
 
-### 4. Sozlamalar (`.env` fayli):
+### 4. Configuration (`.env`)
+Create a `.env` file in the project root:
 ```env
-GEMINI_API_KEY=your_gemini_api_key_here
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here (ixtiyoriy)
+GEMINI_API_KEY=your_gemini_api_key
+GROQ_API_KEY=your_groq_api_key          # Optional resilient fallback
+TELEGRAM_BOT_TOKEN=your_bot_token       # Optional Telegram bot
 PORT=8000
+HOST=0.0.0.0
 ```
 
-### 5. Veb-servisni ishga tushirish:
+### 5. Running the Application
 ```bash
+# Start FastAPI Web Service & REST API
 python app.py
-```
-Brauzerda oching: `http://localhost:8000`
+# -> Web UI: http://localhost:8000
+# -> Interactive Swagger API Docs: http://localhost:8000/docs
 
-### 6. Telegram-botni ishga tushirish (alohida):
-```bash
+# Start MCP Server (stdio)
+python mcp_server.py
+
+# Start Telegram Bot (optional)
 python bot.py
 ```
 
 ---
 
-## 🧪 Misol Savollar
+## 🧪 Testing & Verification
 
-| Savol turi | Savol matni | Kutilgan natija |
-|---|---|---|
-| **Agregatsiya** | *2025-yilda eng koʻp sement sotgan kompaniya va qancha summaga?* | Kompaniya nomi, bitimlar soni va umumiy summa |
-| **Valyuta konversiyasi** | *2024-yil avgust oyidagi eksport bitimlarining soʻmdagi umumiy hajmi qancha?* | Dollar kursiga koʻpaytirilgan soʻmdagi hajm |
-| **Broker tahlili** | *BK001 broker orqali qancha bitim tuzilgan?* | Broker orqali oʻtgan jami bitimlar soni |
-| **Gallyutsinatsiya tekshiruvi (Trap)** | *2024-yilda oltin boʻyicha qancha bitim tuzilgan?* | Bazada maʼlumot topilmadi deb toʻgʻri rad etish |
+The repository includes a comprehensive Pytest test suite validating language routing, SQL injection rejection, pattern matching, database integrity, and MCP handlers:
+
+```bash
+# Run test suite
+pytest tests/ -v
+
+# Run MCP server self-test
+python mcp_server.py --test
+```
 
 ---
 
-## 🏆 Hackathon Baholash Mezonlari Boʻyicha Javoblar
+## 💡 Example Queries & Verified Answers
 
-- **Toʻgʻri javoblar (60 ball):** Deterministik SQL va schema-grounded LLM tufayli barcha raqamlar 100% aniq.
-- **Prototip sifati (20 ball):** Oʻzbek va rus tillari toʻliq quvvatlanadi, SQL soʻrov shaffof koʻrinadi, javob tezligi 1–3 soniya.
-- **Yechim tavsifi (20 ball):** Yuqoridagi arxitektura va xavfsizlik himoyalari toʻliq tavsiflangan.
+| Category | User Question | Verified Data Answer |
+| :--- | :--- | :--- |
+| **Top Seller** | `2025-yilda eng koʻp sement sotgan kompaniya va qancha summaga?` | Identifies leading cement manufacturer, exact INN, and aggregate turnover in UZS |
+| **Broker Volume** | `BK001 brokeri orqali qancha bitim tuzilgan?` | Total transactions where BK001 acted as seller or buyer broker + total volume |
+| **Specification** | `№100050 shartnoma boʻyicha toʻlov va yetkazib berish muddati qancha?` | Contract card attributes, payment terms (days), and delivery basis |
+| **Export FX** | `2024-yil avgust oyidagi eksport bitimlarining soʻmdagi umumiy hajmi qancha?` | Converts USD export deals to UZS using daily CBU rates via SQL JOIN |
+| **Out-of-Domain** | `Oltin narxi bugun qancha boʻldi?` | Verified refusal (strictly adhering to zero-hallucination policy) |
+
+---
+
+## 📄 License
+This project is open-source under the [MIT License](LICENSE). Developed by [Doniyor Musayev](https://github.com/MusayevDoniyor).

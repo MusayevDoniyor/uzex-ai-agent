@@ -4,7 +4,12 @@ import json
 import time
 from typing import Dict, Any, Tuple, Optional, List
 import httpx
-from config import GEMINI_API_KEY, GROQ_API_KEY, DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS
+from config import (
+    GEMINI_API_KEY, GROQ_API_KEY,
+    DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODELS,
+    DEFAULT_GROQ_MODEL, FALLBACK_GROQ_MODELS,
+    REQUEST_TIMEOUT_SECONDS
+)
 from db import db_client
 from schema_desc import SCHEMA_PROMPT
 from rule_fallback import rule_based_sql_fallback
@@ -19,7 +24,7 @@ DOMAIN_KEYWORDS = [
     # Uzbek Latin
     "bitim", "shartnoma", "sotuvchi", "xaridor", "broker", "narx", "summa", "hajm",
     "tovar", "mahsulot", "stir", "inn", "dollar", "so'm", "som", "eksport", "import",
-    "spot", "forvard", "fyuchers", "auksion", "bekor", "bajarilgan", "to'langan", "yangi",
+    "spot", "forvard", "fyuchers", "auksion", "bekor", "bajarilgan", "to'langan", "yangi bitim",
     "sement", "shakar", "bug'doy", "paxta", "benzin", "dizel", "gaz", "alyuminiy",
     "mis", "armatura", "selitra", "karbamid", "un", "moy", "kompaniya", "viloyat", "ombor",
     # Russian Cyrillic
@@ -63,10 +68,16 @@ def is_domain_question(query: str) -> bool:
         return True
     if re.search(r'\b10\d{4}\b', q):
         return True
-    if any(k in q for k in DOMAIN_KEYWORDS):
-        return True
+    for k in DOMAIN_KEYWORDS:
+        if len(k) <= 3:
+            if re.search(rf'\b{re.escape(k)}\b', q):
+                return True
+        else:
+            if k in q:
+                return True
     if any(yr in q for yr in ["2022", "2023", "2024", "2025", "2026"]):
-        return True
+        if any(w in q for w in ["bitim", "yil", "savdo", "narx", "hajm", "сделк", "год", "торг", "объем"]):
+            return True
     return False
 
 def clean_sql(raw: str) -> str:
@@ -121,12 +132,53 @@ async def chat_with_ai(query: str, lang: str) -> str:
         except Exception:
             continue
 
+    groq_reply = await chat_with_groq(query, lang)
+    if groq_reply:
+        return groq_reply
+
     return (
         "👋 Assalomu alaykum! Yaxshiman, rahmat. Men UZEX birja bitimlari (2022–2026) boʻyicha tahliliy AI-agentman. "
         "Birja savdolari, shartnomalar yoki tovarlar (sement, bugʻdoy, paxta va h.k.) haqida istalgan savolingizni berishingiz mumkin!"
         if lang == "uz" else
         "👋 Здравствуйте! Я AI-агент по биржевым сделкам UZEX (2022–2026 гг.). Задайте мне любой вопрос о биржевых торгах, товарах или контрактах!"
     )
+
+async def chat_with_groq(query: str, lang: str) -> Optional[str]:
+    """Fallback conversational reply using Groq."""
+    if not GROQ_API_KEY:
+        return None
+    system_prompt = (
+        "You are an intelligent, friendly and professional AI assistant for the UZEX (Uzbek Republican Commodity Exchange) AI Hackathon 2026. "
+        "Chat warmly, naturally and concisely in 1-2 short sentences. "
+        "Always respond in the EXACT same language as the user (Uzbek for Uzbek, Russian for Russian, English for English). "
+        "Politely invite the user to ask about UZEX spot/futures trade transactions (2022–2026), commodities (cement, wheat, cotton, fuel, sugar), contracts, or brokers. "
+        "CRITICAL: Output ONLY the direct chat response. NEVER output words like 'Selection:', 'Choice:', 'Thought:', 'Option:', or analysis notes."
+    )
+    models = [DEFAULT_GROQ_MODEL] + FALLBACK_GROQ_MODELS
+    for model_name in models:
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+                res = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "model": model_name,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": query}
+                        ],
+                        "temperature": 0.4,
+                        "max_tokens": 150
+                    }
+                )
+                if res.status_code == 200:
+                    txt = res.json()["choices"][0]["message"]["content"].strip()
+                    txt = re.sub(r'^(Selection|Choice|Thought|Analysis|Response|Javob|Ответ):\*?\s*', '', txt, flags=re.IGNORECASE).strip()
+                    if txt:
+                        return txt
+        except Exception:
+            continue
+    return None
 
 async def generate_sql_gemini(prompt: str) -> Optional[str]:
     """Generates SQL query using Gemini Async API."""
@@ -161,6 +213,36 @@ async def generate_sql_gemini(prompt: str) -> Optional[str]:
         except Exception:
             continue
 
+    return None
+
+async def generate_sql_groq(prompt: str) -> Optional[str]:
+    """Generates SQL query using Groq API as resilient fallback."""
+    if not GROQ_API_KEY:
+        return None
+    models = [DEFAULT_GROQ_MODEL] + FALLBACK_GROQ_MODELS
+    for model_name in models:
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+                res = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "model": model_name,
+                        "messages": [
+                            {"role": "system", "content": SCHEMA_PROMPT},
+                            {"role": "user", "content": f"User Question: {prompt}\n\nGenerate only standard SQLite query matching the schema. Return ONLY valid SQL inside a markdown block or raw text without explanation."}
+                        ],
+                        "temperature": 0.0,
+                        "max_tokens": 400
+                    }
+                )
+                if res.status_code == 200:
+                    raw_sql = res.json()["choices"][0]["message"]["content"]
+                    sql = clean_sql(raw_sql)
+                    if sql.upper().startswith("SELECT") and " FROM " in sql.upper():
+                        return sql
+        except Exception:
+            continue
     return None
 
 async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
@@ -219,6 +301,53 @@ async def format_answer_gemini(query: str, sql: str, columns: list, rows: list, 
         except Exception:
             continue
 
+    return None
+
+async def format_answer_groq(query: str, sql: str, columns: list, rows: list, lang: str) -> Optional[str]:
+    """Formats market intelligence response using Groq API as resilient fallback."""
+    if not GROQ_API_KEY:
+        return None
+    data_preview = {
+        "columns": columns,
+        "row_count": len(rows),
+        "rows": rows[:10]
+    }
+    system_instruction = (
+        "You are an expert UZEX (Uzbek Republican Commodity Exchange) market intelligence assistant. "
+        "Strictly adhere to the provided database results. Never hallucinate or extrapolate beyond the data.\n\n"
+        "STRICT ANSWER RULES:\n"
+        "1. Direct & Concise: Answer in 1-2 clear, punchy sentences. Deliver the core number, fact, or company immediately in the very first sentence. "
+        "DO NOT use introductory filler like 'O'zbekiston respublika tovar-xom ashyo birjasi rasmiy tahlilchisi sifatida...' or 'Как аналитик биржи...'. Get straight to the point.\n"
+        "2. Exact Language: Match the user's question language (Uzbek for Uzbek, Russian for Russian, English for English, Spanish for Spanish, etc.).\n"
+        "3. Highlight Numbers: Format large sums or numbers with readable units (e.g. 81 238 709 705 soʻm / ~81.24 mlrd soʻm, 115 763 ta bitim). Use bold markdown for names, numbers and key entities.\n"
+        "4. Entity Names: Include company name, INN/STIR, broker code, or contract number if present in the data.\n"
+        "5. Output ONLY the response text. NEVER output 'Selection:', 'Thought:', or meta-commentary."
+    )
+    user_prompt = f"User Question: {query}\nExecuted SQL: {sql}\nDatabase Results: {json.dumps(data_preview, ensure_ascii=False)}"
+    models = [DEFAULT_GROQ_MODEL] + FALLBACK_GROQ_MODELS
+    for model_name in models:
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+                res = await client.post(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json={
+                        "model": model_name,
+                        "messages": [
+                            {"role": "system", "content": system_instruction},
+                            {"role": "user", "content": user_prompt}
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 250
+                    }
+                )
+                if res.status_code == 200:
+                    txt = res.json()["choices"][0]["message"]["content"].strip()
+                    txt = re.sub(r'^(Selection|Choice|Thought|Analysis|Response|Javob|Ответ):\*?\s*', '', txt, flags=re.IGNORECASE).strip()
+                    if txt:
+                        return txt
+        except Exception:
+            continue
     return None
 
 def format_number(val: Any) -> str:
@@ -296,8 +425,10 @@ class AgentEngine:
                 "status": "out_of_domain"
             }
 
-        # 3. SQL Generation (Gemini with Rule Fallback)
+        # 3. SQL Generation (Gemini -> Groq -> Rule Fallback)
         sql = await generate_sql_gemini(user_query)
+        if not sql:
+            sql = await generate_sql_groq(user_query)
         if not sql:
             sql = rule_based_sql_fallback(user_query)
 
@@ -353,10 +484,14 @@ class AgentEngine:
                 "status": "execution_error"
             }
 
-        # 6. Format Answer (AI-powered analytical summary)
+        # 6. Format Answer (Gemini -> Groq -> Deterministic)
         formatted_answer = await format_answer_gemini(
             user_query, sql, exec_res["columns"], exec_res["rows"], lang
         )
+        if not formatted_answer:
+            formatted_answer = await format_answer_groq(
+                user_query, sql, exec_res["columns"], exec_res["rows"], lang
+            )
         if not formatted_answer:
             formatted_answer = deterministic_format(exec_res["columns"], exec_res["rows"], lang, user_query)
 

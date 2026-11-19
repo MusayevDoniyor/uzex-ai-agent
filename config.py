@@ -19,12 +19,18 @@ PORT = int(os.environ.get("PORT", 8000))
 HOST = os.environ.get("HOST", "0.0.0.0")
 
 # Model settings
-DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"
 FALLBACK_GEMINI_MODELS = [
-    "gemini-3-flash-preview",
-    "gemini-3.5-flash-lite",
-    "gemini-2.5-flash-lite"
+    "gemini-2.5-flash",
+    "gemini-1.5-flash"
 ]
+
+DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+FALLBACK_GROQ_MODELS = [
+    "llama-3.1-8b-instant"
+]
+
+REQUEST_TIMEOUT_SECONDS = float(os.environ.get("REQUEST_TIMEOUT_SECONDS", 12.0))
 
 
 
