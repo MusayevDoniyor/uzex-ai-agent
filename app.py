@@ -14,6 +14,7 @@ sys.path.insert(0, BASE_DIR)
 
 from config import TELEGRAM_BOT_TOKEN, PORT, HOST
 from engine import engine
+from db import db_client
 
 bot_task = None
 
@@ -97,6 +98,74 @@ def get_meta():
             "Participants, brokers and USD rates"
         ]
     }
+
+@app.get("/api/stats/overview", tags=["Analytics"])
+def get_stats_overview():
+    """Returns high-level KPI metrics across the UZEX dataset."""
+    sql = """
+    SELECT 
+        COUNT(*) AS total_deals,
+        ROUND(SUM(deal_sum), 2) AS total_turnover,
+        COUNT(DISTINCT product_name) AS unique_products,
+        MIN(deal_date) AS min_date,
+        MAX(deal_date) AS max_date
+    FROM deals;
+    """
+    res = db_client.execute_query(sql)
+    if not res["success"] or not res["rows"]:
+        return JSONResponse({"error": res.get("error", "Failed to retrieve statistics")}, status_code=500)
+    row = res["rows"][0]
+    return {
+        "total_deals": row[0],
+        "total_turnover_uzs": row[1],
+        "unique_products": row[2],
+        "date_from": row[3],
+        "date_to": row[4],
+        "elapsed_ms": res.get("elapsed_ms", 0)
+    }
+
+@app.get("/api/commodities", tags=["Analytics"])
+def get_top_commodities(limit: int = 10):
+    """Returns the top commodities ranked by trading turnover."""
+    safe_limit = max(1, min(limit, 50))
+    sql = f"""
+    SELECT 
+        product_name,
+        COUNT(*) AS deals_count,
+        ROUND(SUM(volume_units), 2) AS total_volume_units,
+        ROUND(SUM(deal_sum), 2) AS total_turnover
+    FROM deals
+    GROUP BY product_name
+    ORDER BY total_turnover DESC
+    LIMIT {safe_limit};
+    """
+    res = db_client.execute_query(sql)
+    if not res["success"]:
+        return JSONResponse({"error": res.get("error")}, status_code=500)
+    records = [dict(zip(res["columns"], r)) for r in res["rows"]]
+    return {"commodities": records, "count": len(records), "elapsed_ms": res.get("elapsed_ms", 0)}
+
+@app.get("/api/brokers/top", tags=["Analytics"])
+def get_top_brokers(limit: int = 10):
+    """Returns the top brokerage offices by deal count and turnover."""
+    safe_limit = max(1, min(limit, 50))
+    sql = f"""
+    SELECT 
+        b.broker_code,
+        b.name,
+        COUNT(*) AS deals_count,
+        ROUND(SUM(d.deal_sum), 2) AS total_turnover
+    FROM deals d
+    JOIN brokers b ON (d.seller_broker = b.broker_code OR d.buyer_broker = b.broker_code)
+    GROUP BY b.broker_code
+    ORDER BY total_turnover DESC
+    LIMIT {safe_limit};
+    """
+    res = db_client.execute_query(sql)
+    if not res["success"]:
+        return JSONResponse({"error": res.get("error")}, status_code=500)
+    records = [dict(zip(res["columns"], r)) for r in res["rows"]]
+    return {"brokers": records, "count": len(records), "elapsed_ms": res.get("elapsed_ms", 0)}
 
 def build_ask_payload(res: Dict[str, Any], requested_lang: Optional[str] = None) -> Dict[str, Any]:
     lang = requested_lang or res.get("language") or "uz"

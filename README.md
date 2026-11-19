@@ -159,11 +159,36 @@ python app.py
 # -> Web UI: http://localhost:8000
 # -> Interactive Swagger API Docs: http://localhost:8000/docs
 
-# Start MCP Server (stdio)
+# Start Interactive Terminal CLI REPL
+python cli.py
+# Or run a one-shot query:
+python cli.py "2025-yilda sement bo'yicha eng yirik bitimlar"
+
+# Start MCP Server (stdio for Claude Code / Cursor / Agensi)
 python mcp_server.py
+
+# Start with Docker Compose
+docker compose up -d
 
 # Start Telegram Bot (optional)
 python bot.py
+```
+
+---
+
+## 📡 REST API & Analytics Endpoints
+
+In addition to natural language AI endpoints, the service exposes high-performance structured analytics endpoints (<15ms latency):
+
+| Endpoint | Method | Description | Response Model |
+| :--- | :--- | :--- | :--- |
+| `/api/ask` | `POST` | Primary natural language Text-to-SQL question endpoint | `{"answer": str, "sql": str, "evidence": dict, "latency_ms": int}` |
+| `/api/query` | `POST` | Alternative conversational query endpoint | Matches `/api/ask` schema |
+| `/api/stats/overview` | `GET` | High-level market KPIs (total deals, turnover in UZS, unique products, date range) | `{"total_deals": int, "total_turnover_uzs": float, ...}` |
+| `/api/commodities` | `GET` | Top traded commodities ranked by turnover (`?limit=10`) | `{"commodities": [...], "count": int}` |
+| `/api/brokers/top` | `GET` | Top brokerage firms by deal volume and turnover (`?limit=10`) | `{"brokers": [...], "count": int}` |
+| `/health` | `GET` | Liveness & database readiness check | `{"status": "ok", "database_ready": true}` |
+| `/api/meta` | `GET` | Dataset coverage, table row counts, and supported capabilities | `{"coverage": {...}, "capabilities": [...]}` |
 ```
 
 ---

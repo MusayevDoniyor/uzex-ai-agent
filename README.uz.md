@@ -101,21 +101,48 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here (ixtiyoriy)
 PORT=8000
 ```
 
-### 5. MCP Serverini ishga tushirish (Claude Code / Cursor uchun):
+### 5. Interaktiv Terminal CLI (Buyruqlar qatori orqali):
+```bash
+# Interaktiv REPL rejimida:
+python cli.py
+
+# Yoki to'g'ridan-to'g'ri bitta savol berish:
+python cli.py "2025-yilda sement bo'yicha bitimlar"
+```
+
+### 6. MCP Serverini ishga tushirish (Claude Code / Cursor uchun):
 ```bash
 python mcp_server.py
 ```
 
-### 6. Veb-servisni ishga tushirish:
+### 7. Veb-servisni ishga tushirish:
 ```bash
 python app.py
 ```
 Brauzerda oching: `http://localhost:8000` (Swagger hujjatlari: `http://localhost:8000/docs`).
 
-### 7. Avtotestlarni yurgazish:
+### 8. Docker Compose orqali ishga tushirish:
+```bash
+docker compose up -d
+```
+
+### 9. Avtotestlarni yurgazish:
 ```bash
 pytest tests/ -v
 ```
+
+---
+
+## 📡 REST API & Analitika Endpoinlari
+
+Tizimda tabiiy til orqali savol berish bilan birga, yuqori tezlikdagi analitik API yoʻllari mavjud (<15ms):
+- `POST /api/ask` — Asosiy tabiiy tildan SQL hosil qiluvchi endpoint.
+- `POST /api/query` — Muqobil tahliliy soʻrov endpointi.
+- `GET /api/stats/overview` — Umumiy birja koʻrsatkichlari (jami bitimlar, aylanma, tovarlar soni, davr).
+- `GET /api/commodities?limit=10` — Eng koʻp sotilgan tovarlar reytingi.
+- `GET /api/brokers/top?limit=10` — Yetakchi brokerlik idoralari reytingi.
+- `GET /health` — Tizim va maʼlumotlar bazasi holatini tekshirish.
+- `GET /api/meta` — Dataset qamrovi va jadvallar statistikasi.
 
 ---
 

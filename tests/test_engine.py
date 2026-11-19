@@ -137,3 +137,44 @@ def test_engine_conversation_and_domain_gating():
         assert "BK001" in deal_rule_res["sql"]
 
     asyncio.run(_test())
+
+def test_analytics_api_endpoints():
+    from fastapi.testclient import TestClient
+    from app import app
+
+    client = TestClient(app)
+
+    # 1. /health
+    res_health = client.get("/health")
+    assert res_health.status_code == 200
+    assert res_health.json()["status"] == "ok"
+
+    # 2. /api/meta
+    res_meta = client.get("/api/meta")
+    assert res_meta.status_code == 200
+    assert "tables" in res_meta.json()["coverage"]
+
+    # 3. /api/stats/overview
+    res_overview = client.get("/api/stats/overview")
+    assert res_overview.status_code == 200
+    ov_data = res_overview.json()
+    assert ov_data["total_deals"] > 0
+    assert ov_data["total_turnover_uzs"] > 0
+    assert ov_data["unique_products"] > 0
+
+    # 4. /api/commodities
+    res_comm = client.get("/api/commodities?limit=5")
+    assert res_comm.status_code == 200
+    comm_data = res_comm.json()
+    assert "commodities" in comm_data
+    assert len(comm_data["commodities"]) > 0
+    assert "product_name" in comm_data["commodities"][0]
+
+    # 5. /api/brokers/top
+    res_brokers = client.get("/api/brokers/top?limit=5")
+    assert res_brokers.status_code == 200
+    br_data = res_brokers.json()
+    assert "brokers" in br_data
+    assert len(br_data["brokers"]) > 0
+    assert "broker_code" in br_data["brokers"][0]
+
